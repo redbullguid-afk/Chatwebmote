@@ -1,0 +1,3402 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Phòng Chat Trực Tuyến & Đại Chiến Boss Pro</title>
+  
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- EmailJS SDK Integration -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script type="text/javascript">
+    (function(){
+      emailjs.init("YOUR_PUBLIC_KEY");
+    })();
+  </script>
+
+  <!-- Firebase SDKs (v9 Modular CDN) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { 
+      getDatabase, ref, set, get, remove, update, onValue, push, 
+      serverTimestamp, query, limitToLast, onDisconnect 
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDvA9gpHY-e4S3qYXXQQHPc2SxGdwvm4AU",
+      authDomain: "webchat-4ad28.firebaseapp.com",
+      databaseURL: "https://webchat-4ad28-default-rtdb.firebaseio.com",
+      projectId: "webchat-4ad28",
+      storageBucket: "webchat-4ad28.firebasestorage.app",
+      messagingSenderId: "372841627714",
+      appId: "1:372841627714:web:2c1035a9198c179647addb",
+      measurementId: "G-RX9TBCX9V6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    
+    window.db = db;
+    window.dbRefs = { 
+      ref, set, get, remove, update, onValue, push, 
+      serverTimestamp, query, limitToLast, onDisconnect 
+    };
+
+    document.dispatchEvent(new Event('firebase-ready'));
+  </script>
+
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); border-color: rgba(168, 85, 247, 0.6); }
+      50% { box-shadow: 0 0 22px rgba(236, 72, 153, 0.8); border-color: rgba(236, 72, 153, 0.9); }
+    }
+    @keyframes ledWave {
+      0% { filter: hue-rotate(0deg); }
+      50% { filter: hue-rotate(180deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+    @keyframes rainbowAdmin {
+      0% { color: #ef4444; border-color: #ef4444; text-shadow: 0 0 8px rgba(239,68,68,0.8); }
+      33% { color: #10b981; border-color: #10b981; text-shadow: 0 0 8px rgba(16,185,129,0.8); }
+      66% { color: #3b82f6; border-color: #3b82f6; text-shadow: 0 0 8px rgba(59,130,246,0.8); }
+      100% { color: #ef4444; border-color: #ef4444; text-shadow: 0 0 8px rgba(239,68,68,0.8); }
+    }
+    .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+    .music-glow { animation: pulseGlow 3s infinite, ledWave 8s linear infinite; }
+    .led-border { animation: pulseGlow 4s infinite; }
+
+    .badge-admin {
+      animation: rainbowAdmin 4s infinite linear;
+      font-weight: 900;
+      border: 1px solid currentColor;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.6);
+    }
+    .badge-op {
+      color: #ff1a1a;
+      border: 1px solid #800000;
+      background: #330000;
+      text-shadow: 0 0 6px #ff0000;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 6px;
+      box-shadow: 0 0 12px rgba(255, 0, 0, 0.6);
+    }
+    .badge-member {
+      color: #facc15;
+      border: 1px solid rgba(250, 204, 21, 0.4);
+      background: rgba(250, 204, 21, 0.1);
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #090d16; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #1f293d; border-radius: 4px; }
+    
+    #chat-input, #private-chat-input {
+      resize: none;
+      max-height: 100px;
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans antialiased h-screen flex flex-col justify-between overflow-hidden select-none text-xs transition-all duration-300">
+
+  <!-- HTML5 AUDIO ENGINE -->
+  <audio id="global-auto-audio" preload="auto" class="hidden" ontimeupdate="onAudioTimeUpdate()" onended="onAudioEnded()"></audio>
+
+  <!-- NÚT BÓNG NỔI NHẠC NGANG -->
+  <div id="floating-music-ball" class="hidden fixed bottom-12 right-4 z-50 flex items-center bg-gray-900/95 border-2 border-purple-500 rounded-full shadow-2xl p-1.5 backdrop-blur-md cursor-move touch-none music-glow transition-all">
+    <button type="button" onclick="toggleMusicPlaylistModal()" class="w-9 h-9 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-95 flex-shrink-0 shadow-lg">
+      <i id="music-ball-icon" class="fa-solid fa-music text-xs"></i>
+    </button>
+    <div onclick="toggleMusicPlaylistModal()" class="mx-2 max-w-[110px] sm:max-w-[140px] truncate cursor-pointer text-left">
+      <span id="ball-song-title" class="text-[10px] font-bold text-purple-300 block truncate">Kho Nhạc & Player</span>
+      <span class="text-[8px] text-gray-400 block truncate">Bấm để mở danh sách</span>
+    </div>
+  </div>
+
+  <!-- NÚT TÌM KIẾM USER NỔI -->
+  <div id="quick-search-btn-container" class="hidden fixed top-3 right-3 z-40">
+    <button type="button" onclick="openSearchUserScreen()" class="px-3 py-1.5 bg-gray-900/90 hover:bg-gray-800 text-amber-400 border border-amber-500/40 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 backdrop-blur-md">
+      <i class="fa-solid fa-magnifying-glass"></i><span>Tìm User</span>
+    </button>
+  </div>
+
+  <!-- MODAL XÁC NHẬN CHUNG (Đồng ý bên trái, Đóng bên phải) -->
+  <div id="confirm-action-modal" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in">
+    <div class="bg-gray-900 border-2 border-purple-500/60 w-full max-w-sm rounded-2xl p-5 text-center shadow-2xl space-y-3 led-border">
+      <div class="text-3xl text-purple-400 mb-1"><i class="fa-solid fa-circle-question"></i></div>
+      <h3 id="confirm-modal-title" class="text-sm font-bold text-white">Xác nhận thao tác</h3>
+      <p id="confirm-modal-desc" class="text-xs text-gray-300 leading-relaxed"></p>
+      <div class="pt-2 flex gap-2 w-full">
+        <button type="button" id="confirm-modal-yes-btn" class="w-1/2 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl shadow-lg transition-all">Đồng ý</button>
+        <button type="button" onclick="closeConfirmModal()" class="w-1/2 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs rounded-xl transition-all">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DANH SÁCH NHẠC NGANG -->
+  <div id="playlist-modal" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in">
+    <div class="bg-gray-900 border-2 border-purple-500/50 w-full max-w-sm rounded-2xl p-4 shadow-2xl space-y-3 relative led-border">
+      <button type="button" onclick="toggleMusicPlaylistModal()" class="absolute top-3 right-3 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
+      
+      <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+        <h3 class="text-xs font-bold text-purple-300 flex items-center gap-1.5"><i class="fa-solid fa-compact-disc text-purple-400"></i> Kho Nhạc & Trình Phát Ngang</h3>
+        <button type="button" onclick="openRequestSongModal()" class="px-2.5 py-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg text-[9px] font-bold shadow transition-all">Yêu Cầu Duyệt Nhạc</button>
+      </div>
+
+      <div class="relative flex items-center justify-center py-2">
+        <button type="button" onclick="slideCarousel(-1)" class="absolute left-0 z-10 w-7 h-7 bg-gray-950/90 hover:bg-gray-800 text-purple-400 rounded-full border border-purple-500/50 flex items-center justify-center shadow">
+          <i class="fa-solid fa-chevron-left text-[10px]"></i>
+        </button>
+        
+        <div id="music-carousel-container" class="w-full flex items-center justify-center gap-2 overflow-hidden px-8">
+          <p class="text-[10px] text-gray-500 italic text-center">Đang tải danh sách bài hát...</p>
+        </div>
+
+        <button type="button" onclick="slideCarousel(1)" class="absolute right-0 z-10 w-7 h-7 bg-gray-950/90 hover:bg-gray-800 text-purple-400 rounded-full border border-purple-500/50 flex items-center justify-center shadow">
+          <i class="fa-solid fa-chevron-right text-[10px]"></i>
+        </button>
+      </div>
+
+      <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 space-y-2">
+        <div class="flex items-center justify-between">
+          <span id="now-playing-title" class="text-xs font-bold text-amber-400 truncate max-w-[180px]">Chưa phát bài nào</span>
+          <div class="flex items-center gap-1.5">
+            <span id="audio-current-time" class="text-[9px] text-gray-400 font-mono">0:00</span>
+            <span class="text-[9px] text-gray-600">/</span>
+            <span id="audio-duration" class="text-[9px] text-gray-400 font-mono">0:00</span>
+          </div>
+        </div>
+
+        <input type="range" id="audio-seek-bar" value="0" min="0" max="100" step="0.1" oninput="onSeekInput(this.value)" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500">
+
+        <!-- NÚT CHUYỂN ĐỔI CHẾ ĐỘ PHÁT VÀ NÚT ĐIỀU KHIỂN BÀI HÁT -->
+        <div class="flex items-center justify-between pt-1 border-t border-gray-900">
+          <button type="button" id="btn-toggle-loop" onclick="togglePlayMode()" class="px-2 py-1 bg-gray-900 border border-gray-800 rounded-lg text-[9px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1">
+            <i id="icon-toggle-loop" class="fa-solid fa-repeat"></i>
+            <span id="text-toggle-loop">Auto tiếp bài</span>
+          </button>
+
+          <div class="flex items-center justify-center gap-3">
+            <button type="button" onclick="playPrevSong()" class="w-7 h-7 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg flex items-center justify-center" title="Bài trước đó"><i class="fa-solid fa-backward-step text-xs"></i></button>
+            <button type="button" onclick="togglePlayPause()" class="w-9 h-9 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl flex items-center justify-center shadow-lg">
+              <i id="playlist-play-icon" class="fa-solid fa-play text-xs"></i>
+            </button>
+            <button type="button" onclick="playNextSong()" class="w-7 h-7 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg flex items-center justify-center" title="Bài kế tiếp"><i class="fa-solid fa-forward-step text-xs"></i></button>
+          </div>
+
+          <button type="button" onclick="playSelectedCarouselSong()" class="px-2 py-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border border-purple-400/40 rounded-lg text-[9px] font-bold text-white flex items-center gap-1 shadow" title="Phát bài hát đang được hiển thị ở giữa Carousel">
+            <i class="fa-solid fa-circle-play"></i>
+            <span>Phát bài này</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL YÊU CẦU DUYỆT NHẠC -->
+  <div id="request-song-modal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-fade-in">
+    <div class="bg-gray-900 border-2 border-purple-500/50 w-full max-w-xs rounded-2xl p-4 shadow-2xl space-y-3 led-border">
+      <h3 class="text-xs font-bold text-purple-400"><i class="fa-solid fa-compact-disc mr-1"></i> Yêu Cầu Duyệt Bài Hát</h3>
+      <p class="text-[10px] text-gray-400">Chọn tệp âm thanh (.mp3, .m4a), ảnh bìa bài hát và nhập đúng tên bài hát để gửi cho Admin phê duyệt:</p>
+      
+      <div>
+        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Chọn Tệp (.mp3, .m4a, Audio)</label>
+        <input type="file" id="req-song-file" accept="audio/*,.mp3,.m4a" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer">
+      </div>
+
+      <div>
+        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Chọn Ảnh Bìa Bài Hát (Hình ảnh)</label>
+        <input type="file" id="req-song-cover" accept="image/*" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-pink-600 file:text-white hover:file:bg-pink-500 cursor-pointer">
+      </div>
+
+      <div>
+        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Tên Bài Hát (Ghi đúng tên)</label>
+        <input type="text" id="req-song-title" placeholder="Nhập tên bài hát..." class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500">
+      </div>
+
+      <div class="flex gap-2 pt-1">
+        <button type="button" onclick="promptSubmitSongRequest()" class="flex-1 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl shadow">Đồng ý</button>
+        <button type="button" onclick="closeRequestSongModal()" class="py-1.5 px-3 bg-gray-800 hover:bg-gray-700 text-gray-400 text-xs font-bold rounded-xl">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DUYỆT NHẠC CHO ADMIN -->
+  <div id="approve-song-modal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-fade-in">
+    <div class="bg-gray-900 border-2 border-amber-500/50 w-full max-w-xs rounded-2xl p-4 shadow-2xl space-y-3 led-border">
+      <h3 class="text-xs font-bold text-amber-400"><i class="fa-solid fa-compact-disc mr-1"></i> Phê Duyệt Bài Hát Hệ Thống</h3>
+      <p class="text-[10px] text-gray-400">Tùy chỉnh tên bài hát và ảnh bìa nhạc chính thức hiển thị trong danh sách phát:</p>
+      
+      <div>
+        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Nhập tên bài hát khi duyệt nhạc</label>
+        <input type="text" id="approve-modal-song-title" placeholder="Nhập tên bài hát chính thức..." class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500">
+      </div>
+
+      <div>
+        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Thay đổi ảnh bìa bài hát (Bỏ qua nếu dùng ảnh mặc định)</label>
+        <input type="file" id="approve-modal-song-cover" accept="image/*" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-500 cursor-pointer">
+      </div>
+
+      <div class="flex gap-2 pt-1">
+        <button type="button" id="approve-modal-confirm-btn" class="flex-1 py-1.5 bg-gradient-to-r from-amber-600 to-yellow-600 text-white font-bold text-xs rounded-xl shadow">Đồng ý</button>
+        <button type="button" onclick="closeApproveSongModal()" class="py-1.5 px-3 bg-gray-800 hover:bg-gray-700 text-gray-400 text-xs font-bold rounded-xl">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL BÁO CỔNG /REPORT -->
+  <div id="report-modal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-fade-in">
+    <div class="bg-gray-900 border-2 border-rose-500/50 w-full max-w-sm rounded-2xl p-4 shadow-2xl space-y-3 led-border">
+      <h3 class="text-xs font-bold text-rose-400"><i class="fa-solid fa-flag mr-1"></i> Báo Cáo / Góp Ý Hệ Thống</h3>
+      
+      <div>
+        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Chọn loại báo cáo:</label>
+        <select id="report-type-select" onchange="switchReportTypeUI()" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500">
+          <option value="1">1. Báo lỗi</option>
+          <option value="2">2. Báo xấu user</option>
+          <option value="3">3. Góp ý</option>
+        </select>
+      </div>
+
+      <div id="report-username-box" class="hidden">
+        <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Nhập tên user:</label>
+        <input type="text" id="report-target-username" placeholder="Nhập tên user cần báo xấu..." class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500">
+      </div>
+
+      <div>
+        <label id="report-content-label" class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Nhập nội dung báo lỗi vô đây (tối đa 10000 ký tự):</label>
+        <textarea id="report-content-input" rows="4" maxlength="10000" placeholder="Nhập nội dung..." class="w-full p-2 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500 custom-scroll"></textarea>
+      </div>
+
+      <div class="flex gap-2 pt-1">
+        <button type="button" onclick="submitReportForm()" class="flex-1 py-2 bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-xs rounded-xl shadow">Đồng ý</button>
+        <button type="button" onclick="closeReportModal()" class="py-2 px-4 bg-gray-800 hover:bg-gray-700 text-gray-400 text-xs font-bold rounded-xl">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL XEM ẢNH & VIDEO FULLSCREEN -->
+  <div id="media-viewer-modal" class="hidden fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-2 backdrop-blur-md animate-fade-in">
+    <button type="button" onclick="closeMediaViewer()" class="absolute top-3 right-3 text-white/80 hover:text-white bg-gray-900/80 p-2.5 rounded-full border border-gray-700 z-50">
+      <i class="fa-solid fa-xmark text-lg"></i>
+    </button>
+    <div id="media-viewer-content" class="w-full h-full flex items-center justify-center overflow-hidden"></div>
+  </div>
+
+  <!-- MODAL THÔNG BÁO HỆ THỐNG -->
+  <div id="app-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+    <div class="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-2xl p-5 text-center shadow-2xl space-y-3">
+      <div id="app-modal-icon" class="text-3xl text-blue-400 mb-1"><i class="fa-solid fa-circle-info"></i></div>
+      <h3 id="app-modal-title" class="text-sm font-bold text-white">Thông Báo Hệ Thống</h3>
+      <p id="app-modal-desc" class="text-xs text-gray-300 leading-relaxed"></p>
+      <div id="app-modal-buttons" class="pt-2 flex gap-2 justify-center">
+        <button type="button" id="app-modal-confirm-btn" onclick="closeAppModal()" class="w-1/2 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow">Đồng ý</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MÀN HÌNH 1: AUTHENTICATION -->
+  <div id="auth-screen" class="flex-1 flex flex-col justify-center items-center px-4 py-6 overflow-y-auto transition-all duration-300">
+    <div class="w-full max-w-md bg-gray-900/95 border-2 border-blue-500/40 rounded-2xl shadow-2xl p-6 backdrop-blur-md animate-fade-in led-border">
+      
+      <div class="text-center mb-5">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600/20 text-blue-400 mb-2 border border-blue-500/30 shadow-lg">
+          <i class="fa-solid fa-bolt text-xl"></i>
+        </div>
+        <h1 class="text-base font-bold text-white tracking-tight">Web Chat Firebase Pro</h1>
+        <p class="text-[10px] text-gray-400 mt-0.5">Hệ thống Phân Quyền & Game Boss Hacker</p>
+      </div>
+
+      <div class="flex bg-gray-950 p-1 rounded-xl mb-4 border border-gray-800">
+        <button type="button" id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-blue-600 shadow-md transition-all">Đăng Nhập</button>
+        <button type="button" id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all">Đăng Ký</button>
+        <button type="button" id="tab-forgot-btn" onclick="switchAuthTab('forgot')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all">Quên MK</button>
+      </div>
+
+      <div id="auth-alert" class="hidden mb-4 p-2.5 rounded-xl text-xs font-medium border flex items-center gap-2">
+        <i id="auth-alert-icon" class="fa-solid text-sm"></i>
+        <span id="auth-alert-text" class="flex-1 leading-snug"></span>
+      </div>
+
+      <!-- FORM ĐĂNG NHẬP -->
+      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-3">
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tên đăng nhập</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500"><i class="fa-solid fa-user text-xs"></i></span>
+            <input type="text" id="login-username" required placeholder="Nhập tên đăng nhập" class="w-full pl-8 pr-3 py-2 bg-gray-950 border border-gray-800 rounded-xl focus:outline-none focus:border-blue-500 text-xs text-white placeholder-gray-600">
+          </div>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Mật khẩu</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500"><i class="fa-solid fa-lock text-xs"></i></span>
+            <input type="password" id="login-password" required placeholder="Nhập mật khẩu" class="w-full pl-8 pr-3 py-2 bg-gray-950 border border-gray-800 rounded-xl focus:outline-none focus:border-blue-500 text-xs text-white placeholder-gray-600">
+          </div>
+        </div>
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" id="remember-me-checkbox" checked class="w-3.5 h-3.5 rounded bg-gray-950 border-gray-800 text-blue-600 focus:ring-0">
+            <span class="text-[11px] text-gray-300 font-medium">Ghi nhớ phiên đăng nhập</span>
+          </label>
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs rounded-xl shadow-lg transition-all mt-1">Đăng Nhập Ngay</button>
+      </form>
+
+      <!-- FORM ĐĂNG KÝ -->
+      <form id="register-form" onsubmit="handleRegister(event)" class="space-y-3 hidden">
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tên đăng nhập mới</label>
+          <input type="text" id="reg-username" required placeholder="Chữ cái a-z và số 0-9 (>=5 ký tự)" class="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-600">
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Mật khẩu</label>
+          <input type="password" id="reg-password" required placeholder="Tối thiểu 8 ký tự" class="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-600">
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nhập lại mật khẩu</label>
+          <input type="password" id="reg-repassword" required placeholder="Xác nhận mật khẩu" class="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-600">
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Email (không bắt buộc)</label>
+          <input type="email" id="reg-email" placeholder="Nhập email khôi phục..." class="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-600">
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs rounded-xl shadow-lg transition-all mt-1">Đăng Ký Tài Khoản</button>
+      </form>
+
+      <!-- FORM QUÊN MẬT KHẨU / OTP -->
+      <div id="forgot-form-container" class="space-y-3 hidden">
+        <form onsubmit="handleRequestResetOTP(event)" class="space-y-2 pb-2 border-b border-gray-800">
+          <p class="text-[10px] text-amber-400 font-bold uppercase">BƯỚC 1: GỬI YÊU CẦU CẤP MÃ OTP</p>
+          <input type="text" id="forgot-username" required placeholder="Tên đăng nhập" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+          <input type="email" id="forgot-email" required placeholder="Email đã liên kết" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+          <button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs rounded-xl transition-all">Gửi Mã OTP Về Email</button>
+        </form>
+        <form onsubmit="handleResetPasswordWithOTP(event)" class="space-y-2 pt-1">
+          <p class="text-[10px] text-emerald-400 font-bold uppercase">BƯỚC 2: ĐỔI MẬT KHẨU BẰNG OTP</p>
+          <input type="text" id="reset-username" required placeholder="Tên tài khoản" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+          <input type="text" id="reset-otp-code" maxlength="6" required placeholder="Mã OTP 6 số" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs font-mono text-center tracking-widest text-emerald-400">
+          <input type="password" id="reset-new-pass" required placeholder="Mật khẩu mới (>=8 ký tự)" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+          <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl transition-all">Xác Nhận Đổi MK</button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MÀN HÌNH 2: MENU ĐIỀU HƯỚNG -->
+  <div id="menu-screen" class="hidden flex-1 flex flex-col items-center px-4 py-8 overflow-y-auto custom-scroll transition-all duration-300">
+    <div class="w-full max-w-sm bg-gray-900 border-2 border-purple-500/40 rounded-2xl shadow-2xl p-5 text-center space-y-4 animate-fade-in led-border relative mb-12">
+      <span id="menu-new-msg-dot" class="hidden absolute top-3 right-3 w-3 h-3 bg-rose-600 rounded-full animate-ping"></span>
+
+      <div class="w-full pb-2 border-b border-gray-800">
+        <button type="button" onclick="openSearchUserScreen()" class="w-full px-3 py-2 bg-gray-950 hover:bg-gray-800 text-amber-400 border border-amber-500/40 rounded-xl text-xs font-bold shadow flex items-center justify-center gap-2 transition-all">
+          <i class="fa-solid fa-magnifying-glass"></i><span>Nhập tên đăng nhập để tìm user...</span>
+        </button>
+      </div>
+
+      <div class="relative bg-gradient-to-b from-gray-950 to-gray-900 p-4 rounded-xl border border-gray-800">
+        <div class="relative inline-block mb-2">
+          <img id="menu-user-avatar" src="" alt="Avatar" class="w-14 h-14 rounded-full object-cover border-2 border-blue-500/80 shadow-md mx-auto">
+          <span class="absolute bottom-0 right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-gray-900 rounded-full"></span>
+        </div>
+        <h2 class="text-xs font-bold text-white"><span id="menu-nickname-display" class="text-amber-400 font-extrabold text-sm block">Biệt Danh</span> (<span id="menu-user-display" class="text-blue-400">User</span>)</h2>
+        <div class="flex justify-center items-center gap-2 mt-1">
+          <span id="menu-role-badge" class="px-2.5 py-0.5 text-[9px] font-bold rounded bg-gray-800 text-gray-300 border border-gray-700">MEMBER</span>
+        </div>
+      </div>
+
+      <div class="space-y-2 text-left">
+        <button type="button" onclick="openChatScreen()" class="w-full p-2.5 bg-gray-950/80 hover:bg-gray-800 border border-gray-800 rounded-xl transition-all group flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center text-xs"><i class="fa-solid fa-comments"></i></div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-xs font-bold text-white group-hover:text-blue-400">Phòng Chat Chung</h3>
+            <p class="text-[9px] text-gray-400 truncate">Trò chuyện cộng đồng 24/7</p>
+          </div>
+          <i class="fa-solid fa-chevron-right text-[9px] text-gray-600"></i>
+        </button>
+
+        <button type="button" onclick="openBossScreen()" class="w-full p-2.5 bg-gray-950/80 hover:bg-gray-800 border border-rose-500/30 rounded-xl transition-all group flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-400 flex items-center justify-center text-xs"><i class="fa-solid fa-skull"></i></div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-xs font-bold text-rose-400">⚔️ Đại Chiến Admin (Săn Boss)</h3>
+            <p class="text-[9px] text-gray-400 truncate">Săn Boss Hacker & Xếp Hạng Phe</p>
+          </div>
+          <i class="fa-solid fa-chevron-right text-[9px] text-rose-500"></i>
+        </button>
+
+        <button type="button" onclick="openFriendsScreen()" class="w-full p-2.5 bg-gray-950/80 hover:bg-gray-800 border border-gray-800 rounded-xl transition-all group flex items-center gap-3 relative">
+          <div class="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center text-xs"><i class="fa-solid fa-user-group"></i></div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-xs font-bold text-white group-hover:text-purple-400">Bạn Bè & Chat Riêng</h3>
+            <p class="text-[9px] text-gray-400 truncate">Danh sách bạn bè & tin nhắn 1-1</p>
+          </div>
+          <span id="friend-req-badge" class="hidden px-1.5 bg-rose-500 text-white font-bold text-[8px] rounded-full">0</span>
+          <i class="fa-solid fa-chevron-right text-[9px] text-gray-600"></i>
+        </button>
+
+        <button type="button" onclick="openProfileScreen()" class="w-full p-2.5 bg-gray-950/80 hover:bg-gray-800 border border-gray-800 rounded-xl transition-all group flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-xs"><i class="fa-solid fa-circle-user"></i></div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-xs font-bold text-white group-hover:text-emerald-400">Hồ Sơ & Biệt Danh</h3>
+            <p class="text-[9px] text-gray-400 truncate">Avatar động, Biệt danh đa ngôn ngữ</p>
+          </div>
+          <i class="fa-solid fa-chevron-right text-[9px] text-gray-600"></i>
+        </button>
+
+        <button type="button" id="menu-admin-btn" onclick="openAdminScreen()" class="hidden w-full p-2.5 bg-gray-950/80 hover:bg-gray-800 border border-amber-500/30 rounded-xl transition-all group flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center text-xs"><i class="fa-solid fa-sliders"></i></div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-xs font-bold text-amber-400">Quản Lý System & File Hub</h3>
+            <p class="text-[9px] text-gray-400 truncate">3 Tab: Tài Khoản, Nhạc & Kho File</p>
+          </div>
+          <i class="fa-solid fa-chevron-right text-[9px] text-amber-500"></i>
+        </button>
+      </div>
+
+      <button type="button" onclick="handleLogout()" class="mt-2 w-full py-2 bg-gray-950 hover:bg-rose-950/50 text-gray-400 text-xs font-semibold rounded-xl border border-gray-800 flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-right-from-bracket text-[10px]"></i> Đăng Xuất
+      </button>
+    </div>
+  </div>
+
+  <!-- MÀN HÌNH TÌM KIẾM USER THÔNG MINH -->
+  <div id="search-user-screen" class="hidden flex-1 flex flex-col h-screen max-w-4xl mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl transition-all">
+    <header class="bg-gray-900 border-b border-gray-800 px-3 py-2.5 flex items-center justify-between">
+      <button type="button" onclick="backToMenu()" class="px-2 py-1 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Menu</span>
+      </button>
+      <span class="text-amber-400 font-bold text-xs"><i class="fa-solid fa-magnifying-glass mr-1"></i> Tìm Kiếm User Thông Minh</span>
+      <div class="w-8"></div>
+    </header>
+
+    <div class="p-3 bg-gray-900/60 border-b border-gray-800">
+      <div class="relative">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
+        <input type="text" id="search-user-input" oninput="executeSearchUser(this.value)" placeholder="Nhập tên đăng nhập để tìm kiếm..." class="w-full pl-8 pr-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500">
+      </div>
+    </div>
+
+    <div id="search-user-results-container" class="custom-scroll flex-1 p-3 overflow-y-auto space-y-2">
+      <p class="text-xs text-gray-500 italic text-center py-4">Nhập từ khóa để bắt đầu tìm kiếm user...</p>
+    </div>
+  </div>
+
+  <!-- MÀN HÌNH XEM HỒ SƠ CHUYÊN NGHIỆP -->
+  <div id="public-profile-screen" class="hidden flex-1 flex flex-col h-screen max-w-md mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl transition-all">
+    <header class="bg-gray-900 border-b border-gray-800 px-3 py-2 flex items-center justify-between">
+      <button type="button" onclick="backToPreviousFromPublicProfile()" class="px-2 py-1 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Quay lại</span>
+      </button>
+      <span class="text-emerald-400 font-bold text-xs">👤 Hồ Sơ Người Dùng</span>
+      <div class="w-8"></div>
+    </header>
+
+    <div class="flex-1 overflow-y-auto custom-scroll pb-6">
+      <div id="pub-cover-bg" class="w-full h-36 bg-gray-900 bg-cover bg-center relative border-b border-gray-800">
+        <div class="absolute -bottom-6 right-4">
+          <img id="pub-avatar-img" src="" alt="Avatar" class="w-16 h-16 rounded-full object-cover border-4 border-gray-950 shadow-xl">
+        </div>
+      </div>
+
+      <div class="px-4 pt-8 space-y-4">
+        <div>
+          <h2 id="pub-nickname" class="text-sm font-bold text-amber-400">Biệt Danh</h2>
+          <p id="pub-username" class="text-[10px] text-gray-400">@username</p>
+          <div id="pub-role-badge" class="mt-1 inline-block"></div>
+        </div>
+
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 space-y-1">
+          <label class="text-[9px] uppercase font-bold text-gray-500 block">Tiểu sử</label>
+          <p id="pub-bio" class="text-xs text-gray-300 italic">Chưa có tiểu sử nào.</p>
+        </div>
+
+        <div class="bg-gray-900 border border-purple-500/30 rounded-xl p-3 space-y-2">
+          <h3 class="text-xs font-bold text-purple-400 border-b border-gray-800 pb-1.5 flex items-center justify-between">
+            <span>💞 Mối Quan Hệ</span>
+            <button type="button" onclick="togglePublicRelationshipsList()" class="text-[9px] bg-purple-600/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">Xem tất cả</button>
+          </h3>
+          <div id="pub-relationships-container" class="hidden space-y-1 pt-1">
+            <p class="text-[10px] text-gray-500 italic">Không có mối quan hệ công khai.</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button type="button" id="pub-msg-btn" onclick="openPrivateChatFromPublicProfile()" class="flex-1 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1">
+            <i class="fa-solid fa-message"></i> Nhắn Tin
+          </button>
+          <button type="button" id="pub-add-friend-btn" onclick="sendFriendRequestFromPublicProfile()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1">
+            <i class="fa-solid fa-user-plus"></i> Thêm Bạn
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MÀN HÌNH 3: PHÒNG CHAT CHUNG -->
+  <div id="chat-screen" class="hidden flex-1 flex flex-col h-screen max-w-4xl mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl transition-all">
+    <header class="bg-gray-900/90 border-b border-gray-800 px-3 py-2 flex items-center justify-between sticky top-0 z-10">
+      <button type="button" onclick="backToMenu()" class="px-2 py-1 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Menu</span>
+      </button>
+      <div class="flex items-center gap-1.5 bg-gray-950 px-2 py-0.5 border border-emerald-500/30 rounded-full">
+        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+        <span id="chat-online-count" class="text-[10px] font-bold text-emerald-400">1 Online</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
+          <span id="chat-header-user" class="text-xs font-semibold text-gray-300">User</span>
+          <span id="chat-role-badge" class="px-1.5 py-0.2 text-[8px] font-bold rounded">MEMBER</span>
+        </div>
+        <button type="button" onclick="toggleChatSettingsDropdown()" class="w-7 h-7 bg-gray-800 hover:bg-gray-700 text-amber-400 rounded-lg flex items-center justify-center border border-gray-700 relative">
+          <i class="fa-solid fa-gear text-xs"></i>
+        </button>
+      </div>
+    </header>
+
+    <div id="chat-settings-dropdown" class="hidden absolute top-12 right-3 z-50 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-56 p-1.5 space-y-1 backdrop-blur-md animate-fade-in">
+      <button type="button" onclick="openPublicMembersTab()" class="w-full text-left px-3 py-2 hover:bg-gray-800 rounded-lg text-xs text-white flex items-center gap-2">
+        <i class="fa-solid fa-users text-blue-400"></i> Xem thành viên (All user)
+      </button>
+      <div class="px-3 py-2 hover:bg-gray-800 rounded-lg text-xs text-white flex items-center justify-between">
+        <span class="flex items-center gap-2"><i class="fa-solid fa-bell text-amber-400"></i> Bật/tắt thông báo</span>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="public-notif-toggle" checked onchange="togglePublicNotification(this.checked)" class="sr-only peer">
+          <div class="w-8 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-rose-600 peer-checked:to-amber-500 led-border"></div>
+        </label>
+      </div>
+      <button type="button" onclick="openReportModal(); toggleChatSettingsDropdown();" class="w-full text-left px-3 py-2 hover:bg-gray-800 rounded-lg text-xs text-white flex items-center gap-2">
+        <i class="fa-solid fa-flag text-rose-400"></i> Report
+      </button>
+      <button type="button" onclick="openPublicRulesModal()" class="w-full text-left px-3 py-2 hover:bg-gray-800 rounded-lg text-xs text-white flex items-center gap-2">
+        <i class="fa-solid fa-shield text-emerald-400"></i> Xem Rules hiện có
+      </button>
+      <button type="button" onclick="openPublicMediaFilesTab()" class="w-full text-left px-3 py-2 hover:bg-gray-800 rounded-lg text-xs text-white flex items-center gap-2">
+        <i class="fa-solid fa-folder-open text-purple-400"></i> Xem file phương tiện & link
+      </button>
+    </div>
+
+    <div id="pinned-bar" class="hidden bg-amber-950/40 border-b border-amber-500/30 px-3 py-1 flex items-center gap-2 text-amber-300 text-xs">
+      <i class="fa-solid fa-thumbtack text-amber-400 text-[9px]"></i>
+      <span id="pinned-text" class="flex-1 truncate text-[10px]"></span>
+    </div>
+
+    <div id="chat-box" class="custom-scroll flex-1 overflow-y-auto p-2.5 space-y-2.5 bg-gray-950">
+      <div class="text-center my-1">
+        <span class="px-2.5 py-0.5 bg-gray-900 border border-gray-800 rounded-full text-[9px] text-gray-400 inline-block">🔒 Chat trực tuyến 24/7</span>
+      </div>
+    </div>
+
+    <footer class="p-2 bg-gray-900 border-t border-gray-800">
+      <form id="chat-form" onsubmit="handleSendMessage(event)" class="flex items-end gap-1.5">
+        <button type="button" onclick="document.getElementById('chat-img-upload').click()" class="bg-gray-800 hover:bg-gray-700 text-purple-400 w-8 h-8 rounded-xl flex items-center justify-center border border-gray-700 flex-shrink-0">
+          <i class="fa-solid fa-photo-film text-xs"></i>
+        </button>
+        <input type="file" id="chat-img-upload" accept="image/*,video/*,.gif" class="hidden" onchange="handleImageUpload(event)">
+
+        <textarea id="chat-input" rows="1" maxlength="9999" placeholder="Nhập tin nhắn..." 
+          class="flex-1 bg-gray-950 text-white text-[11px] px-2.5 py-1.5 rounded-xl border border-gray-800 focus:outline-none focus:border-blue-500 placeholder-gray-500 leading-normal led-border"
+          onkeydown="handleChatKeyDown(event)" oninput="autoExpandTextarea(this)"></textarea>
+
+        <button type="submit" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white w-7 h-7 rounded-xl flex items-center justify-center shadow flex-shrink-0">
+          <i class="fa-solid fa-paper-plane text-[9px]"></i>
+        </button>
+      </form>
+    </footer>
+  </div>
+
+  <!-- TAB ĐỘC LẬP: XEM THÀNH VIÊN -->
+  <div id="public-members-tab" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in">
+    <div class="bg-gray-900 border border-blue-500/50 w-full max-w-md rounded-2xl p-4 shadow-2xl space-y-3 relative max-h-[80vh] flex flex-col">
+      <button type="button" onclick="closePublicMembersTab()" class="absolute top-3 right-3 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
+      <h3 class="text-xs font-bold text-blue-400"><i class="fa-solid fa-users mr-1"></i> Danh Sách Thành Viên Hệ Thống</h3>
+      <div id="public-members-list-container" class="custom-scroll flex-1 overflow-y-auto space-y-2 p-1 bg-gray-950 rounded-xl border border-gray-800">
+        <p class="text-xs text-gray-500 italic text-center py-4">Đang tải danh sách thành viên...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL XEM RULES -->
+  <div id="public-rules-modal" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in">
+    <div class="bg-gray-900 border border-emerald-500/50 w-full max-w-sm rounded-2xl p-4 shadow-2xl space-y-3 relative">
+      <button type="button" onclick="closePublicRulesModal()" class="absolute top-3 right-3 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
+      <h3 class="text-xs font-bold text-emerald-400"><i class="fa-solid fa-shield mr-1"></i> Bảng Phân Quyền & Rules Hệ Thống</h3>
+      <div class="space-y-2 text-xs text-gray-300 bg-gray-950 p-3 rounded-xl border border-gray-800 leading-relaxed">
+        <p><b class="text-yellow-400">Member:</b> Thấp nhất chỉ có quyền gửi tin nhắn, yêu cầu duyệt nhạc, đánh boss, report.</p>
+        <p><b class="text-rose-500">OP (Phó):</b> Đổi mật khẩu, duyệt nhạc, gửi tin nhắn, report, đánh boss, clear tin nhắn, khóa mõm.</p>
+        <p><b class="text-amber-400">Admin:</b> All quyền hệ thống (toàn quyền quản trị).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB ĐỘC LẬP: KHO FILE PHƯƠNG TIỆN -->
+  <div id="public-media-tab" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in">
+    <div class="bg-gray-900 border border-purple-500/50 w-full max-w-md rounded-2xl p-4 shadow-2xl space-y-3 relative max-h-[80vh] flex flex-col">
+      <button type="button" onclick="closePublicMediaFilesTab()" class="absolute top-3 right-3 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
+      <h3 class="text-xs font-bold text-purple-400"><i class="fa-solid fa-folder-open mr-1"></i> Kho File Phương Tiện & Link Chat Chung</h3>
+      <div id="public-media-list-container" class="custom-scroll flex-1 overflow-y-auto space-y-2 p-1 bg-gray-950 rounded-xl border border-gray-800">
+        <p class="text-xs text-gray-500 italic text-center py-4">Chưa có tệp phương tiện hay link nào.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MÀN HÌNH 4: BẠN BÈ & CHAT RIÊNG -->
+  <div id="friends-screen" class="hidden flex-1 flex flex-col h-screen max-w-4xl mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl transition-all">
+    <header class="bg-gray-900 border-b border-gray-800 px-3 py-2 flex items-center justify-between shrink-0">
+      <button type="button" onclick="backToMenu()" class="px-2 py-1 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Menu</span>
+      </button>
+      <span class="text-purple-400 font-bold text-xs">👥 Bạn Bè & Chat Riêng</span>
+      <div class="w-8"></div>
+    </header>
+
+    <div class="custom-scroll flex-1 p-3 overflow-y-auto space-y-3.5">
+      <div>
+        <h3 class="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+          <i class="fa-solid fa-clock-rotate-left"></i> Lời mời kết bạn đang chờ
+        </h3>
+        <div id="pending-requests-list" class="space-y-1">
+          <p class="text-xs text-gray-500 italic">Không có lời mời nào.</p>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+          <i class="fa-solid fa-user-group"></i> Danh sách bạn bè (Click vô dòng bất kỳ để chat)
+        </h3>
+        <div id="friends-list" class="space-y-1.5">
+          <p class="text-xs text-gray-500 italic">Chưa có bạn bè nào.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MÀN HÌNH 5: CHAT RIÊNG TƯ 1-1 (TÁCH ĐỘC LẬP HOÀN TOÀN TỪ MÀN BẠN BÈ) -->
+  <div id="private-chat-screen" class="hidden flex-1 flex flex-col h-screen max-w-4xl mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl transition-all">
+    <header class="bg-gray-900 border-b border-gray-800 px-3 py-2 flex items-center justify-between shrink-0">
+      <button type="button" onclick="backFromPrivateToFriends()" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Bạn bè</span>
+      </button>
+      <div class="text-center">
+        <span class="text-[8px] text-gray-400 uppercase block">CHAT RIÊNG VỚI</span>
+        <h2 id="private-chat-target" class="text-xs font-bold text-purple-400">User</h2>
+      </div>
+      <button type="button" onclick="togglePrivateSettingsDropdown()" class="w-7 h-7 bg-gray-800 hover:bg-gray-700 text-purple-400 rounded-lg flex items-center justify-center border border-gray-700 relative">
+        <i class="fa-solid fa-gear text-xs"></i>
+      </button>
+    </header>
+
+    <div id="private-settings-dropdown" class="hidden absolute top-12 right-3 z-50 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-60 p-1.5 space-y-1 backdrop-blur-md animate-fade-in">
+      <button type="button" onclick="openPrivateTargetProfile()" class="w-full text-left px-3 py-2 hover:bg-gray-800 rounded-lg text-xs text-white flex items-center gap-2">
+        <i class="fa-solid fa-user text-emerald-400"></i> 0. Xem hồ sơ
+      </button>
+      <button type="button" onclick="openPrivateMediaTab()" class="w-full text-left px-3 py-2 hover:bg-gray-800 rounded-lg text-xs text-white flex items-center gap-2">
+        <i class="fa-solid fa-photo-film text-blue-400"></i> 1. Ảnh file phương tiện
+      </button>
+      <div class="px-3 py-2 hover:bg-gray-800 rounded-lg text-xs text-white flex items-center justify-between">
+        <span class="flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-amber-400"></i> 2. Tin nhắn tự hủy (24h)</span>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="private-autodelete-toggle" onchange="togglePrivateAutoDelete(this.checked)" class="sr-only peer">
+          <div class="w-8 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-purple-600 peer-checked:to-pink-600"></div>
+        </label>
+      </div>
+      <button type="button" onclick="promptChangePrivateNickname()" class="w-full text-left px-3 py-2 hover:bg-gray-800 rounded-lg text-xs text-white flex items-center gap-2">
+        <i class="fa-solid fa-signature text-purple-400"></i> 3. Đổi biệt danh đoạn chat này
+      </button>
+      <button type="button" onclick="openRelationshipModal()" class="w-full text-left px-3 py-2 hover:bg-gray-800 rounded-lg text-xs text-white flex items-center gap-2">
+        <i class="fa-solid fa-heart text-rose-400"></i> 4. Đặt mối quan hệ
+      </button>
+      <button type="button" onclick="promptDeletePrivateChat()" class="w-full text-left px-3 py-2 hover:bg-gray-800 rounded-lg text-xs text-rose-400 flex items-center gap-2">
+        <i class="fa-solid fa-trash text-rose-500"></i> 5. Xoá đoạn chat
+      </button>
+      <button type="button" onclick="promptReportPrivateUser()" class="w-full text-left px-3 py-2 hover:bg-gray-800 rounded-lg text-xs text-rose-400 flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> 6. Báo xấu thông minh
+      </button>
+    </div>
+
+    <div id="private-chat-box" class="custom-scroll flex-1 overflow-y-auto p-2.5 space-y-2 bg-gray-950"></div>
+
+    <footer class="p-2 bg-gray-900 border-t border-gray-800 shrink-0">
+      <form onsubmit="handleSendPrivateMessage(event)" class="flex items-center gap-1.5">
+        <input type="text" id="private-chat-input" placeholder="Nhập tin nhắn riêng tư..." autocomplete="off"
+          class="flex-1 bg-gray-950 text-white text-[11px] px-2.5 py-1.5 rounded-xl border border-gray-800 focus:outline-none focus:border-purple-500 placeholder-gray-500">
+        <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white w-7 h-7 rounded-xl flex items-center justify-center shadow flex-shrink-0">
+          <i class="fa-solid fa-paper-plane text-[9px]"></i>
+        </button>
+      </form>
+    </footer>
+  </div>
+
+  <!-- MODAL CHỌN MỐI QUAN HỆ -->
+  <div id="relationship-modal" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in">
+    <div class="bg-gray-900 border border-rose-500/50 w-full max-w-xs rounded-2xl p-4 shadow-2xl space-y-3 relative">
+      <h3 class="text-xs font-bold text-rose-400"><i class="fa-solid fa-heart mr-1"></i> Chọn Mối Quan Hệ</h3>
+      <div class="space-y-1 max-h-48 overflow-y-auto custom-scroll p-1 bg-gray-950 rounded-xl border border-gray-800">
+        <div onclick="selectRelationship('bạn thân')" class="p-2 hover:bg-gray-800 rounded-lg cursor-pointer text-xs text-white">❤️ Bạn thân</div>
+        <div onclick="selectRelationship('anh trai')" class="p-2 hover:bg-gray-800 rounded-lg cursor-pointer text-xs text-white">👦 Anh trai</div>
+        <div onclick="selectRelationship('em trai')" class="p-2 hover:bg-gray-800 rounded-lg cursor-pointer text-xs text-white">👦 Em trai</div>
+        <div onclick="selectRelationship('đệ tử')" class="p-2 hover:bg-gray-800 rounded-lg cursor-pointer text-xs text-white">🥷 Đệ tử</div>
+        <div onclick="selectRelationship('sư phụ')" class="p-2 hover:bg-gray-800 rounded-lg cursor-pointer text-xs text-white">🧙 Sư phụ</div>
+        <div onclick="selectRelationship('vợ')" class="p-2 hover:bg-gray-800 rounded-lg cursor-pointer text-xs text-white">💍 Vợ</div>
+        <div onclick="selectRelationship('chồng')" class="p-2 hover:bg-gray-800 rounded-lg cursor-pointer text-xs text-white">💍 Chồng</div>
+        <div onclick="selectRelationship('người yêu')" class="p-2 hover:bg-gray-800 rounded-lg cursor-pointer text-xs text-white">💖 Người yêu</div>
+        <div onclick="selectRelationship('kẻ thù')" class="p-2 hover:bg-gray-800 rounded-lg cursor-pointer text-xs text-white">⚔️ Kẻ thù</div>
+      </div>
+      <button type="button" onclick="closeRelationshipModal()" class="w-full py-1.5 bg-gray-800 text-gray-400 text-xs font-semibold rounded-xl">Đóng</button>
+    </div>
+  </div>
+
+  <!-- MÀN HÌNH 6: HỒ SƠ CÁ NHÂN -->
+  <div id="profile-screen" class="hidden flex-1 flex flex-col h-screen max-w-md mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl transition-all">
+    <header class="bg-gray-900 border-b border-gray-800 px-3 py-2 flex items-center justify-between">
+      <button type="button" onclick="backToMenu()" class="px-2 py-1 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Menu</span>
+      </button>
+      <span class="text-emerald-400 font-bold text-xs">👤 Hồ Sơ Của Tôi</span>
+      <div class="w-8"></div>
+    </header>
+
+    <div class="flex-1 p-4 overflow-y-auto custom-scroll space-y-4 pb-6">
+      <div class="relative bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+        <div id="my-cover-bg" class="w-full h-32 bg-gray-950 bg-cover bg-center relative cursor-pointer border-b border-gray-800" onclick="document.getElementById('cover-file-input').click()">
+          <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity">
+            <span class="text-white text-[10px] font-bold bg-black/70 px-2.5 py-1 rounded-lg border border-gray-600"><i class="fa-solid fa-camera mr-1"></i> Đổi ảnh bìa</span>
+          </div>
+        </div>
+        <input type="file" id="cover-file-input" accept="image/*" class="hidden" onchange="handleCoverUpload(event)">
+
+        <div class="p-3 relative pt-8">
+          <div class="absolute -top-8 right-4 cursor-pointer group" onclick="document.getElementById('avatar-file-input').click()">
+            <img id="profile-avatar-img" src="" alt="Avatar" class="w-16 h-16 rounded-full object-cover border-4 border-gray-900 shadow-xl group-hover:opacity-80 transition-opacity">
+          </div>
+          <div class="space-y-1">
+            <div id="profile-username" class="text-xs font-bold text-white">user</div>
+            <div id="profile-role" class="inline-block">MEMBER</div>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="avatar-file-input" accept="image/*,.gif" class="hidden" onchange="handleAvatarUpload(event)">
+
+      <div class="bg-gray-900 border border-emerald-500/30 rounded-xl p-3 space-y-2">
+        <h3 class="text-xs font-bold text-emerald-400 border-b border-gray-800 pb-1.5">📝 Tiểu Sử Bản Thân</h3>
+        <textarea id="profile-bio-input" rows="2" maxlength="500" placeholder="Nhập tiểu sử bản thân vô đây..." class="w-full p-2 bg-gray-950 border border-gray-800 rounded-lg text-xs text-white"></textarea>
+        <button type="button" onclick="handleSaveBio()" class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-lg transition-all">Lưu Tiểu Sử</button>
+      </div>
+
+      <div class="bg-gray-900 border border-amber-500/30 rounded-xl p-3 space-y-2">
+        <h3 class="text-xs font-bold text-amber-400 border-b border-gray-800 pb-1.5">✨ Đặt Biệt Danh</h3>
+        <input type="text" id="profile-nickname-input" placeholder="Nhập biệt danh của bạn..." class="w-full p-2 bg-gray-950 border border-gray-800 rounded-lg text-xs text-white">
+        <button type="button" onclick="handleSaveNickname()" class="w-full py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs rounded-lg transition-all">Lưu Biệt Danh</button>
+      </div>
+
+      <div class="bg-gray-900 border border-blue-500/30 rounded-xl p-3 space-y-2">
+        <h3 class="text-xs font-bold text-blue-400 border-b border-gray-800 pb-1.5">📧 Xác Nhận Email & OTP</h3>
+        <input type="email" id="profile-email-input" placeholder="Nhập email của bạn" class="w-full p-2 bg-gray-950 border border-gray-800 rounded-lg text-xs text-white">
+        <button type="button" onclick="handleRequestEmailOTP()" class="w-full py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg transition-all">Xác Nhận & Gửi Mã OTP</button>
+        
+        <div id="otp-section" class="hidden pt-2 border-t border-gray-800 space-y-2">
+          <p class="text-[10px] text-gray-400">Nhập mã OTP đã được hệ thống gửi cấp:</p>
+          <input type="text" id="profile-otp-input" maxlength="6" placeholder="Mã OTP 6 số" class="w-full p-2 bg-gray-950 border border-gray-800 rounded-lg text-xs font-mono text-center tracking-widest text-amber-400">
+          <button type="button" onclick="handleVerifyEmailOTP()" class="w-full py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs rounded-lg transition-all">Xác Thực Mã OTP</button>
+        </div>
+      </div>
+
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 space-y-2">
+        <h3 class="text-xs font-bold text-white border-b border-gray-800 pb-1.5">🔑 Đổi Mật Khẩu</h3>
+        <input type="password" id="profile-old-pass" placeholder="Mật khẩu cũ" class="w-full p-2 bg-gray-950 border border-gray-800 rounded-lg text-xs text-white">
+        <input type="password" id="profile-new-pass" placeholder="Mật khẩu mới (>=8 ký tự)" class="w-full p-2 bg-gray-950 border border-gray-800 rounded-lg text-xs text-white">
+        <input type="password" id="profile-renew-pass" placeholder="Nhập lại mật khẩu mới" class="w-full p-2 bg-gray-950 border border-gray-800 rounded-lg text-xs text-white">
+        <button type="button" onclick="handleUserSelfChangePasswordAdvanced()" class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-lg transition-all">Cập Nhật Mật Khẩu Mới</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL XEM HỒ SƠ NGƯỜI KHÁC -->
+  <div id="user-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm animate-fade-in">
+    <div class="bg-gray-900 border border-gray-800 w-full max-w-xs rounded-2xl p-5 text-center shadow-2xl relative space-y-3">
+      <button type="button" onclick="closeUserModal()" class="absolute top-2.5 right-2.5 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
+      <img id="modal-avatar" src="" class="w-16 h-16 rounded-full mx-auto border-2 border-purple-500 object-cover shadow-lg">
+      <h3 id="modal-nickname" class="text-sm font-bold text-amber-400">Biệt Danh</h3>
+      <p id="modal-username" class="text-[10px] text-gray-400">@user</p>
+      <span id="modal-role" class="px-2.5 py-0.5 text-[9px] font-bold rounded inline-block">MEMBER</span>
+      <div class="pt-2 space-y-2">
+        <button type="button" onclick="sendFriendRequest()" class="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl shadow"><i class="fa-solid fa-user-plus mr-1"></i> Kết Bạn</button>
+        <button type="button" onclick="closeUserModal()" class="w-full py-1.5 bg-gray-800 text-gray-400 text-xs font-semibold rounded-xl">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MÀN HÌNH 7: QUẢN LÝ HỆ THỐNG VỚI 3 TAB -->
+  <div id="admin-screen" class="hidden flex-1 flex flex-col h-screen max-w-4xl mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl transition-all">
+    <header class="bg-gray-900 border-b border-gray-800 px-3 py-2 flex items-center justify-between shrink-0">
+      <button type="button" onclick="backToMenu()" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Menu</span>
+      </button>
+      <span class="text-amber-400 font-bold text-xs truncate max-w-[200px] sm:max-w-none">⚙️ Quản Lý Hệ Thống & Trình Duyệt</span>
+      <button type="button" onclick="loadAdminAllData()" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-amber-400 text-xs font-semibold rounded-lg border border-gray-700"><i class="fa-solid fa-rotate-right"></i></button>
+    </header>
+
+    <div class="bg-gray-900 border-b border-gray-800 flex px-3 pt-2 gap-2">
+      <button type="button" id="admin-tab-btn-1" onclick="switchAdminTab(1)" class="px-4 py-2 text-xs font-bold rounded-t-xl bg-gray-950 text-blue-400 border-t border-x border-blue-500/40">1. Tài Khoản & OTP</button>
+      <button type="button" id="admin-tab-btn-2" onclick="switchAdminTab(2)" class="px-4 py-2 text-xs font-bold rounded-t-xl bg-gray-900 text-gray-400 border-t border-x border-transparent">2. Nhạc & Duyệt</button>
+      <button type="button" id="admin-tab-btn-3" onclick="switchAdminTab(3)" class="px-4 py-2 text-xs font-bold rounded-t-xl bg-gray-900 text-gray-400 border-t border-x border-transparent">3. Kho File</button>
+    </div>
+
+    <div class="custom-scroll flex-1 p-3 overflow-y-auto space-y-4">
+      
+      <!-- TAB 1: TÀI KHOẢN & MÃ OTP -->
+      <div id="admin-tab-content-1" class="space-y-4">
+        <div class="bg-gray-900 border border-amber-500/30 rounded-2xl shadow-xl overflow-hidden">
+          <div class="p-2.5 bg-amber-950/40 border-b border-amber-500/30 flex justify-between items-center">
+            <span class="text-xs font-bold text-amber-400"><i class="fa-solid fa-key mr-1"></i> Quản Lý Mã OTP & Xác Nhận Email (Hạn 15 Ngày)</span>
+            <span id="admin-reset-count" class="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">0 yêu cầu</span>
+          </div>
+          <div class="custom-scroll overflow-x-auto max-w-full">
+            <table class="w-full text-left text-xs text-gray-300 min-w-[650px]">
+              <thead class="bg-gray-950 text-gray-400 uppercase text-[9px] tracking-wider border-b border-gray-800 whitespace-nowrap">
+                <tr>
+                  <th class="px-3 py-2">Tên Đăng Nhập</th>
+                  <th class="px-3 py-2">Yêu Cầu / Lý Do</th>
+                  <th class="px-3 py-2">Ngày Gửi / Mã OTP</th>
+                  <th class="px-3 py-2">Trạng Thái</th>
+                  <th class="px-3 py-2 text-right">Thao Tác Duyệt</th>
+                </tr>
+              </thead>
+              <tbody id="admin-reset-table-body" class="divide-y divide-gray-800/60 whitespace-nowrap"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl shadow-xl overflow-hidden">
+          <div class="p-2.5 bg-gray-950/60 border-b border-gray-800 flex justify-between items-center">
+            <span class="text-xs font-bold text-gray-300"><i class="fa-solid fa-users mr-1"></i> Danh Sách Tài Khoản</span>
+            <span id="admin-user-count" class="text-[9px] bg-blue-600/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-bold">0 users</span>
+          </div>
+          <div class="custom-scroll overflow-x-auto max-w-full">
+            <table class="w-full text-left text-xs text-gray-300 min-w-[600px]">
+              <thead class="bg-gray-950 text-gray-400 uppercase text-[9px] tracking-wider border-b border-gray-800 whitespace-nowrap">
+                <tr>
+                  <th class="px-3 py-2">Tên / Biệt Danh</th>
+                  <th class="px-3 py-2">Email (Bảo mật Admin)</th>
+                  <th class="px-3 py-2">Mật Khẩu</th>
+                  <th class="px-3 py-2">Chức Vụ</th>
+                  <th class="px-3 py-2 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="admin-user-table-body" class="divide-y divide-gray-800/60 whitespace-nowrap"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: NHẠC & DUYỆT (TẢI DỮ LIỆU CHUẨN FIREBASE) -->
+      <div id="admin-tab-content-2" class="hidden space-y-4">
+        <div class="bg-gray-900 border border-purple-500/30 rounded-2xl shadow-xl p-3.5 space-y-3">
+          <h3 class="text-xs font-bold text-purple-400 border-b border-gray-800 pb-2 flex items-center justify-between">
+            <span><i class="fa-solid fa-compact-disc mr-1"></i> Yêu Cầu Duyệt Nhạc Từ User</span>
+            <button type="button" onclick="loadAdminSongRequests()" class="text-[9px] bg-purple-600/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded">Tải lại</button>
+          </h3>
+          <div id="admin-song-requests-list" class="space-y-2 max-h-52 overflow-y-auto custom-scroll p-1 bg-gray-950 rounded-xl border border-gray-800">
+            <p class="text-xs text-gray-500 italic p-2 text-center">Đang tải danh sách từ Firebase...</p>
+          </div>
+        </div>
+
+        <div class="bg-gray-900 border border-blue-500/30 rounded-2xl shadow-xl p-3.5 space-y-3">
+          <h3 class="text-xs font-bold text-blue-400 border-b border-gray-800 pb-2 flex items-center justify-between">
+            <span><i class="fa-solid fa-photo-film mr-1"></i> Kiểm Duyệt Ảnh & Video Từ Member</span>
+            <button type="button" onclick="loadAdminMediaRequests()" class="text-[9px] bg-blue-600/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded">Tải lại</button>
+          </h3>
+          <div id="admin-media-requests-list" class="space-y-2 max-h-52 overflow-y-auto custom-scroll p-1 bg-gray-950 rounded-xl border border-gray-800">
+            <p class="text-xs text-gray-500 italic p-2 text-center">Không có ảnh/video chờ duyệt nào.</p>
+          </div>
+        </div>
+
+        <div class="bg-gray-900 border border-amber-500/30 rounded-2xl shadow-xl p-3.5 space-y-3">
+          <h3 class="text-xs font-bold text-amber-400 border-b border-gray-800 pb-2 flex items-center justify-between">
+            <span><i class="fa-solid fa-music mr-1"></i> Danh Sách Nhạc Đã Duyệt Hệ Thống</span>
+            <button type="button" onclick="loadAdminApprovedSongs()" class="text-[9px] bg-amber-600/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded">Tải lại</button>
+          </h3>
+          <div id="admin-approved-songs-list" class="space-y-2 max-h-60 overflow-y-auto custom-scroll p-1 bg-gray-950 rounded-xl border border-gray-800">
+            <p class="text-xs text-gray-500 italic p-2 text-center">Đang tải nhạc từ Firebase...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: KHO FILE -->
+      <div id="admin-tab-content-3" class="hidden space-y-4">
+        <div class="bg-gray-900 border border-blue-500/30 rounded-2xl shadow-xl p-3.5 space-y-3">
+          <h3 class="text-xs font-bold text-blue-400 border-b border-gray-800 pb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-folder-open"></i> Kho Lưu Trữ Tệp Tin (.mp3, .m4a, Max 200MB)
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">ID Tệp</label>
+              <input type="text" id="admin-file-id" placeholder="Ví dụ: nhac1, lofi" class="w-full px-2.5 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Nhập tên bài hát (duyệt nhạc)</label>
+              <input type="text" id="admin-file-song-title" placeholder="Tên bài hát khi duyệt..." class="w-full px-2.5 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Chọn Tệp (.mp3, .m4a, Audio)</label>
+              <input type="file" id="admin-file-input" accept="audio/*,.mp3,.m4a" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
+            </div>
+            <div>
+              <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Chọn Ảnh Bìa Bài Hát (Hình ảnh)</label>
+              <input type="file" id="admin-file-cover-input" accept="image/*" class="w-full text-xs text-gray-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-pink-600 file:text-white hover:file:bg-pink-500 cursor-pointer">
+            </div>
+          </div>
+          <button type="button" onclick="handleAdminUploadFile()" class="w-full py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow transition-all active:scale-95">
+            <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Tải Tệp Lên Kho File
+          </button>
+
+          <div class="mt-2">
+            <span class="text-[9px] font-bold text-gray-400 uppercase block mb-1">Danh Sách Tệp Đã Lưu:</span>
+            <div id="admin-files-list" class="space-y-1.5 max-h-48 overflow-y-auto custom-scroll p-1 bg-gray-950 rounded-xl border border-gray-800">
+              <p class="text-xs text-gray-500 italic p-1">Chưa có tệp nào.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MÀN HÌNH 8: ĐẠI CHIẾN ADMIN & SÂN BOSS -->
+  <div id="boss-screen" class="hidden flex-1 flex flex-col h-screen max-w-4xl mx-auto w-full bg-gray-950 border-x border-gray-900 shadow-2xl transition-all">
+    <header class="bg-gray-900/90 border-b border-gray-800 px-3 py-2 flex items-center justify-between">
+      <button type="button" onclick="backToMenu()" class="px-2.5 py-1 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg border border-gray-700 flex items-center gap-1">
+        <i class="fa-solid fa-chevron-left text-[10px]"></i><span>Menu</span>
+      </button>
+      <span class="text-rose-400 font-bold text-xs">⚔️ Đại Chiến Admin - Săn Boss</span>
+      <div id="boss-admin-setup-btn" class="hidden">
+        <button type="button" onclick="showBossSetupModal()" class="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold rounded-lg"><i class="fa-solid fa-gear"></i> Set Boss</button>
+      </div>
+    </header>
+
+    <div class="custom-scroll flex-1 p-3 overflow-y-auto space-y-3">
+      <div class="bg-gray-900/90 border-2 border-rose-500/40 rounded-2xl p-3 text-center relative overflow-hidden led-border">
+        <div class="flex justify-between items-center mb-1">
+          <span id="boss-faction-tag" class="px-2 py-0.5 text-[9px] font-bold rounded-full">Phe: Chờ chọn</span>
+          <span class="text-[9px] text-gray-400">Rs hàng tuần vào Thứ 2</span>
+        </div>
+        <h2 id="boss-name" class="text-xs font-black text-rose-400 tracking-wide uppercase">BOSS HACKER</h2>
+        
+        <div class="w-full bg-gray-950 border border-gray-800 rounded-full h-3.5 my-1.5 overflow-hidden relative shadow-inner">
+          <div id="boss-hp-bar" class="bg-gradient-to-r from-rose-600 to-amber-500 h-full transition-all duration-300" style="width: 100%;"></div>
+          <span id="boss-hp-text" class="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white drop-shadow">1,000,000 / 1,000,000 HP</span>
+        </div>
+
+        <div class="my-2 flex flex-col items-center justify-center">
+          <div id="boss-avatar-btn" onclick="registerBossClick()" class="w-20 h-20 rounded-full bg-rose-950/60 border-4 border-rose-500/50 flex items-center justify-center cursor-pointer shadow-2xl hover:scale-105 active:scale-95 transition-transform select-none">
+            <i class="fa-solid fa-user-ninja text-3xl text-rose-500"></i>
+          </div>
+          <div class="mt-2 flex items-center gap-3">
+            <div class="text-center"><span class="text-[8px] text-gray-400 uppercase block">Thời Gian</span><span id="game-timer" class="text-xs font-bold text-amber-400 font-mono">60s</span></div>
+            <button type="button" id="start-game-btn" onclick="startBossFight()" class="px-3.5 py-1.5 bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-xs rounded-xl shadow transition-all active:scale-95">🚀 BẮT ĐẦU ĐÁNH</button>
+            <div class="text-center"><span class="text-[8px] text-gray-400 uppercase block">Cú Click</span><span id="round-clicks" class="text-xs font-bold text-emerald-400 font-mono">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-3 space-y-2.5">
+        <h3 class="text-xs font-bold text-white tracking-wide border-b border-gray-800 pb-1 flex items-center gap-1.5">
+          <i class="fa-solid fa-trophy text-amber-400"></i> BẢNG XẾP HẠNG PHE & THÀNH VIÊN
+        </h3>
+        <div class="grid grid-cols-2 gap-2 text-center">
+          <div class="bg-rose-950/40 border border-rose-500/40 p-2 rounded-xl"><span class="text-[9px] font-bold text-rose-400 block">🔴 PHE ĐỎ (Admin Mờ Tê)</span><span id="score-red" class="text-xs font-black text-white mt-0.5 block">0 HP</span></div>
+          <div class="bg-blue-950/40 border border-blue-500/40 p-2 rounded-xl"><span class="text-[9px] font-bold text-blue-400 block">🔵 PHE XANH (Admin TNA)</span><span id="score-blue" class="text-xs font-black text-white mt-0.5 block">0 HP</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CHỌN PHE -->
+  <div id="faction-modal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-fade-in">
+    <div class="bg-gray-900 border border-gray-800 w-full max-w-xs rounded-2xl p-5 text-center shadow-2xl space-y-3">
+      <h3 class="text-xs font-bold text-white">CHỌN PHE CHÍNH THỨC</h3>
+      <p class="text-[10px] text-gray-400">Chọn phe để tham gia săn Boss cùng cộng đồng!</p>
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button type="button" onclick="selectFaction('red')" class="p-2.5 bg-rose-950/60 border border-rose-500/50 rounded-xl flex flex-col items-center"><span class="text-xs font-bold text-rose-300">PHE ĐỎ</span><span class="text-[9px] text-gray-400">Admin Mờ Tê</span></button>
+        <button type="button" onclick="selectFaction('blue')" class="p-2.5 bg-blue-950/60 border border-blue-500/50 rounded-xl flex flex-col items-center"><span class="text-xs font-bold text-blue-300">PHE XANH</span><span class="text-[9px] text-gray-400">Admin TNA</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SETUP BOSS -->
+  <div id="boss-setup-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-fade-in">
+    <div class="bg-gray-900 border border-amber-500/40 w-full max-w-xs rounded-2xl p-4 text-center shadow-2xl space-y-2.5">
+      <h3 class="text-xs font-bold text-amber-400">⚙️ CẤU HÌNH BOSS HACKER</h3>
+      <input type="text" id="setup-boss-name" value="Hacker" placeholder="Tên Boss" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+      <input type="number" id="setup-boss-hp" value="1000000" placeholder="Máu Boss HP" class="w-full px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white">
+      <div class="flex gap-2 pt-1 w-full">
+        <button type="button" onclick="saveBossConfig()" class="w-1/2 py-1.5 bg-amber-600 text-white font-bold text-xs rounded-xl">Đồng ý</button>
+        <button type="button" onclick="closeBossSetupModal()" class="w-1/2 py-1.5 bg-gray-800 text-gray-400 text-xs font-bold rounded-xl">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT HỆ THỐNG TOÀN DIỆN -->
+  <script>
+    const ROLE_ADMIN = 0;
+    const ROLE_OP = 1;
+    const ROLE_MEMBER = 2;
+
+    const DEFAULT_ADMIN_USER = "admin";
+    const DEFAULT_ADMIN_PASS = "15112009@";
+
+    const EMAILJS_SERVICE_ID = "service_az8s2vo";
+    const EMAILJS_TEMPLATE_ID = "template_cb4xnwh";
+
+    let currentUser = null;
+    let isAudioPlaying = false;
+    let approvedSongList = [];
+    let currentSongIndex = 0;
+    let activeMusicData = null;
+    let selectedTargetUser = null;
+    let activePrivateFriend = null;
+    let activeLeaderboardTab = 'red';
+    let bossGameActive = false;
+    let bossTimerInterval = null;
+    let roundClickCount = 0;
+    let currentBossData = null;
+
+    let playMode = 'next'; // 'next': Auto phát tiếp bài khác, 'loop': Auto phát lại bài hiện tại
+    let autoSwitchOnSelect = false; // Mặc định false: Xem danh sách/xoay bài hát độc lập mà không ngắt bài đang nghe
+
+    document.addEventListener('firebase-ready', async () => {
+      await ensureAdminExists();
+      checkActiveSession();
+      listenPinnedMessage();
+      initDraggableMusicBall();
+      listenApprovedPlaylist();
+      listenActiveBackgroundMusic();
+      listenBossGameData();
+    });
+
+    async function sendOTPEmailViaEmailJS(username, email, otpCode) {
+      const templateParams = {
+        to_name: username,
+        username: username,
+        message: `Xin chào ${username} đây là mã otp của bạn:${otpCode} vui lòng không chia sẻ với bất kỳ ai và không gửi hoặc trả lời email này`,
+        otp_code: otpCode,
+        to_email: email
+      };
+
+      try {
+        const response = await fetch('/api/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, otpCode })
+        });
+        
+        if (response.ok) {
+          console.log("[SUCCESS] Gửi email OTP thành công qua Backend API /api/send-otp");
+          return true;
+        } else {
+          throw new Error("Backend API response not ok");
+        }
+      } catch (err) {
+        console.warn("[FALLBACK] Backend API failed, trying EmailJS Browser SDK directly...", err);
+        try {
+          if (typeof emailjs !== 'undefined') {
+            await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+            console.log("[EMAILJS SUCCESS] Đã gửi mã OTP trực tiếp qua EmailJS SDK đến:", email);
+            return true;
+          }
+        } catch (sdkErr) {
+          console.error("[EMAILJS ERROR]:", sdkErr);
+        }
+      }
+      return false;
+    }
+
+    // --- XÁC NHẬN CHUNG (Đồng ý bên trái, Đóng bên phải) ---
+    function showConfirmModal(title, desc, onYesCallback) {
+      document.getElementById('confirm-modal-title').innerText = title;
+      document.getElementById('confirm-modal-desc').innerText = desc;
+      const yesBtn = document.getElementById('confirm-modal-yes-btn');
+      yesBtn.onclick = () => {
+        closeConfirmModal();
+        if (onYesCallback) onYesCallback();
+      };
+      document.getElementById('confirm-action-modal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirm-action-modal').classList.add('hidden');
+    }
+
+    function getRoleBadgeHTML(role) {
+      if (role === ROLE_ADMIN) return '<span class="badge-admin">ADMIN</span>';
+      if (role === ROLE_OP) return '<span class="badge-op">OP</span>';
+      return '<span class="badge-member">MEMBER</span>';
+    }
+
+    function formatTimeAgo(timestamp) {
+      if (!timestamp) return 'vừa xong';
+      const seconds = Math.floor((Date.now() - timestamp) / 1000);
+      if (seconds < 60) return `${seconds} giây trước`;
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes} phút trước`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours} giờ trước`;
+      const days = Math.floor(hours / 24);
+      return `${days} ngày trước`;
+    }
+
+    // --- MUSIC PLAYER ---
+    function listenActiveBackgroundMusic() {
+      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'active_bg_music'), async (snap) => {
+        if (!snap.exists()) return;
+        const config = snap.val();
+        if (!config || !config.fileId) return;
+
+        const fileSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, `system_files/${config.fileId}`));
+        if (fileSnap.exists()) {
+          const fileData = fileSnap.val();
+          activeMusicData = {
+            id: config.fileId,
+            title: config.title || fileData.name,
+            content: fileData.content
+          };
+
+          const titleElem = document.getElementById('now-playing-title');
+          const ballTitle = document.getElementById('ball-song-title');
+          if (titleElem) titleElem.innerText = activeMusicData.title;
+          if (ballTitle) ballTitle.innerText = activeMusicData.title;
+
+          const audio = document.getElementById('global-auto-audio');
+          if (audio && !isAudioPlaying) {
+            audio.src = activeMusicData.content;
+            audio.load();
+          }
+        }
+      });
+    }
+
+    function listenApprovedPlaylist() {
+      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'approved_music'), (snap) => {
+        approvedSongList = [];
+        if (snap.exists()) {
+          const songs = snap.val();
+          Object.keys(songs).forEach(fileId => {
+            approvedSongList.push({ id: fileId, ...songs[fileId] });
+          });
+        }
+        renderMusicCarousel();
+      });
+    }
+
+    function renderMusicCarousel() {
+      const container = document.getElementById('music-carousel-container');
+      if (!container) return;
+
+      if (approvedSongList.length === 0) {
+        container.innerHTML = '<p class="text-[10px] text-gray-500 italic text-center">Chưa có bài hát nào được duyệt.</p>';
+        return;
+      }
+
+      container.innerHTML = '';
+      approvedSongList.forEach((song, idx) => {
+        let positionClass = "hidden";
+        let opacityClass = "opacity-40 scale-75 blur-[1px]";
+        let widthClass = "w-16";
+
+        if (idx === currentSongIndex) {
+          positionClass = "flex";
+          opacityClass = "opacity-100 scale-100 z-10 shadow-xl border-purple-500";
+          widthClass = "w-28";
+        } else if (idx === currentSongIndex - 1 || (currentSongIndex === 0 && idx === approvedSongList.length - 1)) {
+          positionClass = "flex -mr-6";
+          opacityClass = "opacity-50 scale-90 translate-x-2";
+          widthClass = "w-16";
+        } else if (idx === currentSongIndex + 1 || (currentSongIndex === approvedSongList.length - 1 && idx === 0)) {
+          positionClass = "flex -ml-6";
+          opacityClass = "opacity-50 scale-90 -translate-x-2";
+          widthClass = "w-16";
+        }
+
+        const isCenterSongPlaying = (idx === currentSongIndex) && isAudioPlaying && activeMusicData && (activeMusicData.id === song.fileId);
+        
+        // Hiển thị thời gian nhạc phía giữa ảnh và tên bài hát
+        const durationText = song.durationStr || song.duration || "0:00";
+        const coverImgHTML = song.coverUrl ? `<img src="${song.coverUrl}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-compact-disc text-purple-300 text-lg ${isCenterSongPlaying ? 'animate-spin' : ''}"></i>`;
+
+        container.innerHTML += `
+          <div onclick="selectCarouselSongView(${idx})" class="${positionClass} flex-col items-center cursor-pointer transition-all duration-300 ${opacityClass} ${widthClass}">
+            <div class="w-12 h-12 rounded-full bg-purple-950 border-2 border-purple-400 overflow-hidden shadow flex items-center justify-center relative">
+              ${coverImgHTML}
+              ${idx === currentSongIndex ? `<div class="absolute inset-0 bg-black/30 hover:bg-black/10 flex items-center justify-center transition-all"><i class="fa-solid ${isCenterSongPlaying ? 'fa-pause' : 'fa-play'} text-white text-xs drop-shadow-md"></i></div>` : ''}
+            </div>
+            
+            <!-- Hiển thị thời gian nhạc ở phía giữa ảnh và tên bài hát -->
+            <span class="text-[8px] font-mono font-semibold text-purple-300 my-0.5 bg-gray-950/80 px-1.5 py-0.2 rounded-full border border-purple-500/30">${escapeHTML(durationText)}</span>
+
+            <span class="text-[9px] font-bold text-white text-center truncate w-full px-1">${escapeHTML(song.title)}</span>
+          </div>
+        `;
+      });
+    }
+
+    function slideCarousel(direction) {
+      if (approvedSongList.length === 0) return;
+      currentSongIndex = (currentSongIndex + direction + approvedSongList.length) % approvedSongList.length;
+      renderMusicCarousel();
+    }
+
+    function selectCarouselSongView(idx) {
+      if (idx < 0 || idx >= approvedSongList.length) return;
+      
+      // Nếu chọn bài đã nằm ở giữa rồi thì bấm vào sẽ phát / tạm dừng bài đó
+      if (currentSongIndex === idx) {
+        playSelectedCarouselSong();
+      } else {
+        // Xoay bài hát được chọn vào giữa để xem thông tin mà không ngắt nhạc đang nghe
+        currentSongIndex = idx;
+        renderMusicCarousel();
+      }
+    }
+
+    async function playSelectedCarouselSong() {
+      if (approvedSongList.length === 0) return;
+      const song = approvedSongList[currentSongIndex];
+      if (!song) return;
+
+      // Nếu bài ở giữa chính là bài đang phát -> Tải toggle Pause/Play
+      if (activeMusicData && activeMusicData.id === song.fileId) {
+        togglePlayPause();
+        return;
+      }
+
+      const fileSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, `system_files/${song.fileId}`));
+      if (fileSnap.exists()) {
+        const fileData = fileSnap.val();
+        activeMusicData = { id: song.fileId, title: song.title, content: fileData.content };
+        playAudioSource(activeMusicData.content, activeMusicData.title);
+      }
+    }
+
+    async function selectAndPlayCarouselSong(idx, forcePlay = false) {
+      if (idx < 0 || idx >= approvedSongList.length) return;
+      currentSongIndex = idx;
+      renderMusicCarousel();
+
+      if (!forcePlay && !autoSwitchOnSelect && isAudioPlaying) {
+        return;
+      }
+
+      const song = approvedSongList[idx];
+
+      const fileSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, `system_files/${song.fileId}`));
+      if (fileSnap.exists()) {
+        const fileData = fileSnap.val();
+        activeMusicData = { id: song.fileId, title: song.title, content: fileData.content };
+        playAudioSource(activeMusicData.content, activeMusicData.title);
+      }
+    }
+
+    function playAudioSource(src, title) {
+      const audio = document.getElementById('global-auto-audio');
+      if (!audio) return;
+
+      audio.pause();
+      audio.src = src;
+      audio.load();
+      audio.play().then(() => {
+        isAudioPlaying = true;
+        updatePlayerUIState(title, true);
+      }).catch(err => {
+        console.error("Playback error:", err);
+        isAudioPlaying = false;
+        updatePlayerUIState(title, false);
+      });
+    }
+
+    function togglePlayPause() {
+      const audio = document.getElementById('global-auto-audio');
+      if (!audio) return;
+
+      if (isAudioPlaying) {
+        audio.pause();
+        isAudioPlaying = false;
+        updatePlayerUIState(activeMusicData ? activeMusicData.title : 'Đã tạm dừng', false);
+      } else {
+        if (audio.src && audio.src !== window.location.href) {
+          audio.play().then(() => {
+            isAudioPlaying = true;
+            updatePlayerUIState(activeMusicData ? activeMusicData.title : 'Đăng phát...', true);
+          }).catch(err => {
+            if (approvedSongList.length > 0) {
+              selectAndPlayCarouselSong(currentSongIndex, true);
+            }
+          });
+        } else if (approvedSongList.length > 0) {
+          selectAndPlayCarouselSong(currentSongIndex, true);
+        }
+      }
+    }
+
+    // NÚT BẤM CHUYỂN BÀI HÁT TRƯỚC VÀ SAU THEO BÀI DANG XEM TRÊN CAROUSEL
+    function playNextSong() {
+      if (approvedSongList.length === 0) return;
+      const nextIdx = (currentSongIndex + 1) % approvedSongList.length;
+      selectAndPlayCarouselSong(nextIdx, true);
+    }
+
+    function playPrevSong() {
+      if (approvedSongList.length === 0) return;
+      const prevIdx = (currentSongIndex - 1 + approvedSongList.length) % approvedSongList.length;
+      selectAndPlayCarouselSong(prevIdx, true);
+    }
+
+    function togglePlayMode() {
+      if (playMode === 'next') {
+        playMode = 'loop';
+        document.getElementById('icon-toggle-loop').className = "fa-solid fa-arrows-rotate text-amber-400";
+        document.getElementById('text-toggle-loop').innerText = "Auto phát lại bài";
+        document.getElementById('btn-toggle-loop').className = "px-2 py-1 bg-amber-950/60 border border-amber-500/50 rounded-lg text-[9px] font-bold text-amber-300 flex items-center gap-1";
+      } else {
+        playMode = 'next';
+        document.getElementById('icon-toggle-loop').className = "fa-solid fa-repeat";
+        document.getElementById('text-toggle-loop').innerText = "Auto tiếp bài";
+        document.getElementById('btn-toggle-loop').className = "px-2 py-1 bg-gray-900 border border-gray-800 rounded-lg text-[9px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1";
+      }
+    }
+
+    function toggleAutoSwitchOnSelect() {
+      autoSwitchOnSelect = !autoSwitchOnSelect;
+      const btn = document.getElementById('btn-toggle-auto-switch');
+      const text = document.getElementById('text-toggle-switch');
+      const icon = document.getElementById('icon-toggle-switch');
+
+      if (autoSwitchOnSelect) {
+        btn.className = "px-2 py-1 bg-purple-900/40 border border-purple-500/40 rounded-lg text-[9px] font-bold text-purple-300 flex items-center gap-1";
+        text.innerText = "Bấm là phát";
+        icon.className = "fa-solid fa-circle-play";
+      } else {
+        btn.className = "px-2 py-1 bg-gray-900 border border-gray-800 rounded-lg text-[9px] font-bold text-gray-400 flex items-center gap-1";
+        text.innerText = "Chỉ xem";
+        icon.className = "fa-solid fa-eye";
+      }
+    }
+
+    function onAudioTimeUpdate() {
+      const audio = document.getElementById('global-auto-audio');
+      const seekBar = document.getElementById('audio-seek-bar');
+      const curTimeElem = document.getElementById('audio-current-time');
+      const durElem = document.getElementById('audio-duration');
+      if (!audio || !seekBar) return;
+
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        const percent = (audio.currentTime / audio.duration) * 100;
+        seekBar.value = percent;
+        if (curTimeElem) curTimeElem.innerText = formatTime(audio.currentTime);
+        if (durElem) durElem.innerText = formatTime(audio.duration);
+
+        // Cập nhật lại độ dài bài hát đang phát nếu trước đây bị lưu nhầm 0:00
+        if (activeMusicData && activeMusicData.id) {
+          const currentSongObj = approvedSongList.find(s => s.fileId === activeMusicData.id);
+          if (currentSongObj && (!currentSongObj.durationStr || currentSongObj.durationStr === '0:00')) {
+            const formatted = formatTime(audio.duration);
+            currentSongObj.durationStr = formatted;
+            window.dbRefs.update(window.dbRefs.ref(window.db, `approved_music/${activeMusicData.id}`), { durationStr: formatted });
+            renderMusicCarousel();
+          }
+        }
+      }
+    }
+
+    function onSeekInput(val) {
+      const audio = document.getElementById('global-auto-audio');
+      if (!audio || !audio.duration || isNaN(audio.duration)) return;
+      audio.currentTime = (val / 100) * audio.duration;
+    }
+
+    function onAudioEnded() {
+      if (playMode === 'loop') {
+        const audio = document.getElementById('global-auto-audio');
+        if (audio) { audio.currentTime = 0; audio.play(); }
+      } else {
+        playNextSong();
+      }
+    }
+
+    function formatTime(sec) {
+      if (isNaN(sec) || !isFinite(sec) || sec <= 0) return "0:00";
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    // Hàm hỗ trợ đo thời lượng Audio bất đồng bộ chính xác cao
+    function calculateAudioDuration(base64Src) {
+      return new Promise((resolve) => {
+        const tempAudio = new Audio();
+        let resolved = false;
+
+        const checkDuration = () => {
+          if (!resolved && tempAudio.duration && isFinite(tempAudio.duration) && tempAudio.duration > 0) {
+            resolved = true;
+            resolve(formatTime(tempAudio.duration));
+          }
+        };
+
+        tempAudio.onloadedmetadata = checkDuration;
+        tempAudio.ondurationchange = checkDuration;
+        tempAudio.oncanplaythrough = checkDuration;
+        
+        tempAudio.onerror = () => {
+          if (!resolved) { resolved = true; resolve("0:00"); }
+        };
+
+        tempAudio.src = base64Src;
+        tempAudio.load();
+
+        setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            if (tempAudio.duration && isFinite(tempAudio.duration) && tempAudio.duration > 0) {
+              resolve(formatTime(tempAudio.duration));
+            } else {
+              resolve("0:00");
+            }
+          }
+        }, 2000);
+      });
+    }
+
+    function updatePlayerUIState(title, playing) {
+      const icon = document.getElementById('music-ball-icon');
+      const playlistIcon = document.getElementById('playlist-play-icon');
+      const titleElem = document.getElementById('now-playing-title');
+      const ballTitle = document.getElementById('ball-song-title');
+
+      if (titleElem && title) titleElem.innerText = title;
+      if (ballTitle && title) ballTitle.innerText = title;
+
+      if (playing) {
+        if (icon) icon.className = "fa-solid fa-compact-disc text-xs animate-spin text-white";
+        if (playlistIcon) playlistIcon.className = "fa-solid fa-pause text-xs";
+      } else {
+        if (icon) icon.className = "fa-solid fa-music text-xs text-white";
+        if (playlistIcon) playlistIcon.className = "fa-solid fa-play text-xs";
+      }
+      renderMusicCarousel();
+    }
+
+    function toggleMusicPlaylistModal() {
+      const modal = document.getElementById('playlist-modal');
+      if (modal) {
+        modal.classList.toggle('hidden');
+        if (!modal.classList.contains('hidden')) renderMusicCarousel();
+      }
+    }
+
+    function openRequestSongModal() {
+      document.getElementById('playlist-modal').classList.add('hidden');
+      document.getElementById('request-song-modal').classList.remove('hidden');
+    }
+
+    function closeRequestSongModal() {
+      document.getElementById('request-song-modal').classList.add('hidden');
+    }
+
+    function promptSubmitSongRequest() {
+      showConfirmModal("Xác Nhận Yêu Cầu Duyệt Nhạc", "Bạn chắc muốn gửi yêu cầu duyệt nhạc này không?", () => {
+        submitSongRequest();
+      });
+    }
+
+    async function submitSongRequest() {
+      const titleInput = document.getElementById('req-song-title').value.trim();
+      const fileInput = document.getElementById('req-song-file');
+      const coverInput = document.getElementById('req-song-cover');
+      const file = fileInput.files[0];
+      const coverFile = coverInput.files[0];
+
+      if (!titleInput || !file) return showAppModal("Lỗi", "Vui lòng chọn tệp và nhập đúng tên bài hát!");
+      if (file.size > 50 * 1024 * 1024) return showAppModal("Lỗi", "File nhạc vượt quá 50MB!");
+
+      const processUpload = (coverBase64 = "") => {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+          const base64 = e.target.result;
+          const fileId = 'song_' + Date.now();
+
+          // Đo thời lượng audio chính xác cao
+          const durationStr = await calculateAudioDuration(base64);
+          
+          await window.dbRefs.set(window.dbRefs.ref(window.db, `system_files/${fileId}`), {
+            id: fileId,
+            name: titleInput,
+            size: file.size,
+            type: file.type,
+            content: base64,
+            uploadedAt: Date.now()
+          });
+
+          await window.dbRefs.set(window.dbRefs.ref(window.db, `song_requests/${fileId}`), {
+            fileId: fileId,
+            title: titleInput,
+            coverUrl: coverBase64,
+            durationStr: durationStr,
+            sender: currentUser.username,
+            requestedAt: Date.now()
+          });
+
+          closeRequestSongModal();
+          showAppModal("Thành công", "Đã gửi yêu cầu duyệt nhạc đến hệ thống thành công!");
+        };
+        reader.readAsDataURL(file);
+      };
+
+      if (coverFile) {
+        const coverReader = new FileReader();
+        coverReader.onload = (e) => processUpload(e.target.result);
+        coverReader.readAsDataURL(coverFile);
+      } else {
+        processUpload("");
+      }
+    }
+
+    async function submitReportForm() {
+      const type = document.getElementById('report-type-select').value;
+      const content = document.getElementById('report-content-input').value.trim();
+      const targetUser = document.getElementById('report-target-username').value.trim();
+
+      if (!content) return showAppModal("Lỗi", "Vui lòng nhập nội dung báo cáo!");
+      if (type === '2' && !targetUser) return showAppModal("Lỗi", "Vui lòng nhập tên user cần báo xấu!");
+
+      let reportText = "";
+      if (type === '1') reportText = `🚨 [BÁO CỔNG - BÁO LỖI]\n- Người gửi: @${currentUser.username}\n- Nội dung:\n${content}`;
+      else if (type === '2') reportText = `🚨 [BÁO CỔNG - BÁO XẤU USER]\n- Người gửi: @${currentUser.username}\n- User bị báo xấu: @${targetUser}\n- Nội dung:\n${content}`;
+      else if (type === '3') reportText = `💡 [BÁO CỔNG - GÓP Ý]\n- Người gửi: @${currentUser.username}\n- Nội dung:\n${content}`;
+
+      const adminChatId = [currentUser.username.toLowerCase(), DEFAULT_ADMIN_USER].sort().join('_');
+      const msgRef = window.dbRefs.push(window.dbRefs.ref(window.db, `private_chats/${adminChatId}`));
+      await window.dbRefs.set(msgRef, {
+        sender: currentUser.username,
+        text: reportText,
+        timestamp: Date.now()
+      });
+
+      closeReportModal();
+      document.getElementById('report-content-input').value = '';
+      document.getElementById('report-target-username').value = '';
+      showAppModal("Thành công", "Báo cáo của bạn đã được gửi thành công tới @admin!");
+    }
+
+    function toggleChatSettingsDropdown() {
+      const drop = document.getElementById('chat-settings-dropdown');
+      if (drop) drop.classList.toggle('hidden');
+    }
+
+    function togglePrivateSettingsDropdown() {
+      const drop = document.getElementById('private-settings-dropdown');
+      if (drop) drop.classList.toggle('hidden');
+    }
+
+    function openPublicMembersTab() {
+      toggleChatSettingsDropdown();
+      document.getElementById('public-members-tab').classList.remove('hidden');
+      loadPublicMembersList();
+    }
+
+    function closePublicMembersTab() {
+      document.getElementById('public-members-tab').classList.add('hidden');
+    }
+
+    async function loadPublicMembersList() {
+      const container = document.getElementById('public-members-list-container');
+      if (!container) return;
+      container.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-4">Đang tải...</p>';
+
+      const snap = await window.dbRefs.get(window.dbRefs.ref(window.db, 'users'));
+      if (!snap.exists()) {
+        container.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-4">Không có thành viên nào.</p>';
+        return;
+      }
+
+      container.innerHTML = '';
+      const users = snap.val();
+      Object.keys(users).forEach(k => {
+        const u = users[k];
+        const isOnline = !!u.onlineStatus;
+        const roleHTML = getRoleBadgeHTML(u.role !== undefined ? u.role : ROLE_MEMBER);
+        const avatar = u.avatar || generateDefaultAvatar(u.username);
+        const nickname = u.nickname || u.username;
+
+        container.innerHTML += `
+          <div class="flex items-center justify-between p-2.5 bg-gray-900 rounded-xl border border-gray-800 text-xs gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="relative">
+                <img src="${avatar}" class="w-9 h-9 rounded-full object-cover border border-gray-700">
+                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 ${isOnline ? 'bg-emerald-500' : 'bg-gray-500'} border-2 border-gray-900 rounded-full"></span>
+              </div>
+              <div class="truncate">
+                <div class="font-bold text-white truncate">${escapeHTML(nickname)} (@${escapeHTML(u.username)})</div>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="text-[9px] ${isOnline ? 'text-emerald-400' : 'text-gray-400'}">${isOnline ? 'Online' : 'Offline'}</span>
+                  <span>${roleHTML}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-1 flex-shrink-0">
+              <button type="button" onclick="viewUserProfileFromMembers('${u.username}')" class="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-[9px]">Hồ sơ</button>
+              <button type="button" onclick="sendFriendRequestDirect('${u.username}')" class="px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded text-[9px]">Kết bạn</button>
+              <button type="button" onclick="blockUserDirect('${u.username}')" class="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded text-[9px]">Chặn</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function viewUserProfileFromMembers(username) {
+      closePublicMembersTab();
+      openPublicProfileByUsername(username);
+    }
+
+    async function sendFriendRequestDirect(username) {
+      if (!currentUser || username.toLowerCase() === currentUser.username.toLowerCase()) return;
+      await window.dbRefs.set(window.dbRefs.ref(window.db, `friend_requests/${username.toLowerCase()}/${currentUser.username.toLowerCase()}`), {
+        from: currentUser.username,
+        status: 'pending',
+        timestamp: Date.now()
+      });
+      showAppModal("Thành công", `Đã gửi lời mời kết bạn đến [${username}]!`);
+    }
+
+    async function blockUserDirect(username) {
+      if (!currentUser) return;
+      await window.dbRefs.set(window.dbRefs.ref(window.db, `blocked_users/${currentUser.username.toLowerCase()}/${username.toLowerCase()}`), true);
+      showAppModal("Thành công", `Đã chặn tin nhắn từ user [${username}]!`);
+    }
+
+    function togglePublicNotification(enabled) {
+      localStorage.setItem('public_notif_enabled', enabled ? 'true' : 'false');
+      showAppModal("Thông báo", enabled ? "Đã bật thông báo chat chung!" : "Đã tắt thông báo chat chung!");
+    }
+
+    function openPublicRulesModal() {
+      toggleChatSettingsDropdown();
+      document.getElementById('public-rules-modal').classList.remove('hidden');
+    }
+    function closePublicRulesModal() {
+      document.getElementById('public-rules-modal').classList.add('hidden');
+    }
+
+    function openPublicMediaFilesTab() {
+      toggleChatSettingsDropdown();
+      document.getElementById('public-media-tab').classList.remove('hidden');
+      loadPublicMediaFiles();
+    }
+    function closePublicMediaFilesTab() {
+      document.getElementById('public-media-tab').classList.add('hidden');
+    }
+
+    async function loadPublicMediaFiles() {
+      const container = document.getElementById('public-media-list-container');
+      if (!container) return;
+      container.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-4">Đang tải...</p>';
+
+      const snap = await window.dbRefs.get(window.dbRefs.ref(window.db, 'messages'));
+      if (!snap.exists()) {
+        container.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-4">Không có tệp phương tiện nào.</p>';
+        return;
+      }
+
+      container.innerHTML = '';
+      const msgs = snap.val();
+      const keys = Object.keys(msgs).reverse();
+
+      let found = 0;
+      keys.forEach(k => {
+        const m = msgs[k];
+        if (m.imageUrl || (m.text && (m.text.includes('http://') || m.text.includes('https://')))) {
+          found++;
+          const timeAgo = formatTimeAgo(m.timestamp);
+          const preview = m.imageUrl ? `<img src="${m.imageUrl}" class="w-12 h-12 object-cover rounded cursor-pointer" onclick="openMediaViewer('${m.imageUrl}', 'image')">` : `<i class="fa-solid fa-link text-blue-400 text-lg"></i>`;
+          
+          container.innerHTML += `
+            <div class="flex items-center justify-between p-2.5 bg-gray-900 rounded-xl border border-gray-800 text-xs gap-2">
+              <div class="flex items-center gap-2.5 truncate flex-1">
+                ${preview}
+                <div class="truncate">
+                  <div class="font-bold text-white truncate">${escapeHTML(m.nickname || m.sender)}</div>
+                  <div class="text-[9px] text-gray-400">${timeAgo}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      if (found === 0) {
+        container.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-4">Chưa có file phương tiện hay link nào.</p>';
+      }
+    }
+
+    function togglePrivateAutoDelete(enabled) {
+      if (!activePrivateFriend || !currentUser) return;
+      const chatId = [currentUser.username.toLowerCase(), activePrivateFriend.toLowerCase()].sort().join('_');
+      window.dbRefs.update(window.dbRefs.ref(window.db, `private_chat_meta/${chatId}`), { autoDelete: enabled });
+    }
+
+    function promptChangePrivateNickname() {
+      togglePrivateSettingsDropdown();
+      const newNick = prompt("Nhập biệt danh mới trong đoạn chat này:");
+      if (!newNick) return;
+      if (!activePrivateFriend || !currentUser) return;
+      const chatId = [currentUser.username.toLowerCase(), activePrivateFriend.toLowerCase()].sort().join('_');
+      window.dbRefs.update(window.dbRefs.ref(window.db, `private_chat_nicknames/${chatId}/${currentUser.username.toLowerCase()}`), { nickname: newNick });
+      showAppModal("Thành công", "Đã đổi biệt danh trong đoạn chat riêng!");
+    }
+
+    function openRelationshipModal() {
+      togglePrivateSettingsDropdown();
+      document.getElementById('relationship-modal').classList.remove('hidden');
+    }
+    function closeRelationshipModal() {
+      document.getElementById('relationship-modal').classList.add('hidden');
+    }
+
+    async function selectRelationship(relName) {
+      closeRelationshipModal();
+      if (!activePrivateFriend || !currentUser) return;
+      const chatId = [currentUser.username.toLowerCase(), activePrivateFriend.toLowerCase()].sort().join('_');
+      
+      const reqId = 'rel_' + Date.now();
+      await window.dbRefs.set(window.dbRefs.ref(window.db, `private_relationships/${chatId}/${reqId}`), {
+        from: currentUser.username,
+        relation: relName,
+        status: 'pending',
+        timestamp: Date.now()
+      });
+
+      const msgRef = window.dbRefs.push(window.dbRefs.ref(window.db, `private_chats/${chatId}`));
+      await window.dbRefs.set(msgRef, {
+        sender: currentUser.username,
+        text: `🤝 @${currentUser.username} muốn thiết lập mối quan hệ [ ${relName} ] với bạn. Bấm đồng ý hoặc từ chối!`,
+        isRelationshipReq: true,
+        relId: reqId,
+        relation: relName,
+        timestamp: Date.now()
+      });
+      showAppModal("Thành công", `Đã gửi lời mời thiết lập mối quan hệ [${relName}]!`);
+    }
+
+    async function acceptRelationship(reqId, relName, chatId) {
+      await window.dbRefs.update(window.dbRefs.ref(window.db, `private_relationships/${chatId}/${reqId}`), { status: 'accepted' });
+      await window.dbRefs.set(window.dbRefs.ref(window.db, `users/${currentUser.username.toLowerCase()}/relationships/${activePrivateFriend.toLowerCase()}`), relName);
+      await window.dbRefs.set(window.dbRefs.ref(window.db, `users/${activePrivateFriend.toLowerCase()}/relationships/${currentUser.username.toLowerCase()}`), relName);
+      showAppModal("Thành công", `Đã xác nhận mối quan hệ [${relName}] thành công!`);
+    }
+
+    async function declineRelationship(reqId, chatId) {
+      await window.dbRefs.update(window.dbRefs.ref(window.db, `private_relationships/${chatId}/${reqId}`), { status: 'declined' });
+      showAppModal("Đã từ chối", "Bạn đã từ chối mối quan hệ này.");
+    }
+
+    function promptDeletePrivateChat() {
+      togglePrivateSettingsDropdown();
+      showConfirmModal("Xác Nhận Xoá Đoạn Chat", "Bạn có chắc muốn xoá đoạn chat của mình đi không?", async () => {
+        if (!activePrivateFriend || !currentUser) return;
+        const chatId = [currentUser.username.toLowerCase(), activePrivateFriend.toLowerCase()].sort().join('_');
+        await window.dbRefs.set(window.dbRefs.ref(window.db, `private_chat_deleted/${chatId}/${currentUser.username.toLowerCase()}`), true);
+        showAppModal("Thành công", "Đã xoá lịch sử đoạn chat của bạn!");
+        openFriendsScreen();
+      });
+    }
+
+    function promptReportPrivateUser() {
+      togglePrivateSettingsDropdown();
+      openReportModal();
+      if (activePrivateFriend) {
+        document.getElementById('report-type-select').value = '2';
+        switchReportTypeUI();
+        document.getElementById('report-target-username').value = activePrivateFriend;
+      }
+    }
+
+    function openPrivateTargetProfile() {
+      togglePrivateSettingsDropdown();
+      if (activePrivateFriend) openPublicProfileByUsername(activePrivateFriend);
+    }
+
+    function openPrivateMediaTab() {
+      togglePrivateSettingsDropdown();
+      openPublicMediaFilesTab();
+    }
+
+    function switchAuthTab(tab) {
+      hideAuthAlert();
+      const loginForm = document.getElementById('login-form');
+      const registerForm = document.getElementById('register-form');
+      const forgotContainer = document.getElementById('forgot-form-container');
+      const loginBtn = document.getElementById('tab-login-btn');
+      const regBtn = document.getElementById('tab-register-btn');
+      const forgotBtn = document.getElementById('tab-forgot-btn');
+
+      if (loginForm) loginForm.classList.add('hidden');
+      if (registerForm) registerForm.classList.add('hidden');
+      if (forgotContainer) forgotContainer.classList.add('hidden');
+
+      if (loginBtn) loginBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all";
+      if (regBtn) regBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all";
+      if (forgotBtn) forgotBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all";
+
+      if (tab === 'login') {
+        if (loginForm) loginForm.classList.remove('hidden');
+        if (loginBtn) loginBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-blue-600 shadow-md transition-all";
+      } else if (tab === 'register') {
+        if (registerForm) registerForm.classList.remove('hidden');
+        if (regBtn) regBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-emerald-600 shadow-md transition-all";
+      } else if (tab === 'forgot') {
+        if (forgotContainer) forgotContainer.classList.remove('hidden');
+        if (forgotBtn) forgotBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg text-white bg-amber-600 shadow-md transition-all";
+      }
+    }
+
+    function showAuthAlert(message, isError = true) {
+      const alertBox = document.getElementById('auth-alert');
+      const alertText = document.getElementById('auth-alert-text');
+      const alertIcon = document.getElementById('auth-alert-icon');
+      if (!alertBox || !alertText) return;
+
+      alertBox.classList.remove('hidden', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-400', 'bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400');
+      if (isError) {
+        alertBox.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-400');
+        if (alertIcon) alertIcon.className = "fa-solid fa-triangle-exclamation text-rose-400";
+      } else {
+        alertBox.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400');
+        if (alertIcon) alertIcon.className = "fa-solid fa-circle-check text-emerald-400";
+      }
+      alertText.innerText = message;
+    }
+
+    function hideAuthAlert() {
+      const alertBox = document.getElementById('auth-alert');
+      if (alertBox) alertBox.classList.add('hidden');
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      hideAuthAlert();
+      const usernameInput = document.getElementById('login-username').value.trim();
+      const passwordInput = document.getElementById('login-password').value;
+      const rememberMe = document.getElementById('remember-me-checkbox')?.checked;
+
+      if (!usernameInput || !passwordInput) {
+        return showAuthAlert("Tên tài khoản hoặc mật khẩu không đúng!");
+      }
+
+      try {
+        const userKey = usernameInput.toLowerCase();
+        const userSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, `users/${userKey}`));
+
+        if (!userSnap.exists()) {
+          return showAuthAlert("Tên tài khoản hoặc mật khẩu không đúng!");
+        }
+
+        const userData = userSnap.val();
+        if (userData.isBanned) {
+          return showAuthAlert("Tài khoản của bạn đã bị khóa (BAN)!");
+        }
+
+        if (userData.password !== passwordInput) {
+          return showAuthAlert("Tên tài khoản hoặc mật khẩu không đúng!");
+        }
+
+        currentUser = {
+          username: userData.username,
+          nickname: userData.nickname || userData.username,
+          role: userData.role !== undefined ? userData.role : ROLE_MEMBER,
+          faction: userData.faction || null,
+          avatar: userData.avatar || generateDefaultAvatar(userData.username),
+          cover: userData.cover || '',
+          bio: userData.bio || '',
+          email: userData.email || '',
+          mutedUntil: userData.mutedUntil || 0
+        };
+
+        if (rememberMe) {
+          localStorage.setItem('active_chat_user', JSON.stringify(currentUser));
+        }
+
+        setupPresence();
+        showAuthAlert("Đăng nhập thành công", false);
+        setTimeout(() => showMenuScreen(), 500);
+      } catch (err) {
+        console.error(err);
+        showAuthAlert("Lỗi kết nối máy chủ! Vui lòng thử lại.");
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      hideAuthAlert();
+      const usernameInput = document.getElementById('reg-username').value.trim();
+      const passwordInput = document.getElementById('reg-password').value;
+      const repasswordInput = document.getElementById('reg-repassword').value;
+      const emailInput = document.getElementById('reg-email').value.trim();
+
+      if (!/^[a-zA-Z0-9]{5,}$/.test(usernameInput)) {
+        return showAuthAlert("Đăng ký thất bại (Tên đăng nhập từ 5 ký tự a-z và số 0-9)");
+      }
+      if (passwordInput.length < 8) {
+        return showAuthAlert("Đăng ký thất bại (Mật khẩu tối thiểu 8 ký tự)");
+      }
+      if (passwordInput !== repasswordInput) {
+        return showAuthAlert("Đăng ký thất bại (Mật khẩu nhập lại không khớp)");
+      }
+
+      try {
+        const userKey = usernameInput.toLowerCase();
+        const userSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, `users/${userKey}`));
+
+        if (userSnap.exists()) {
+          return showAuthAlert("Đăng ký thất bại (Tên đăng nhập đã tồn tại)");
+        }
+
+        await window.dbRefs.set(window.dbRefs.ref(window.db, `users/${userKey}`), {
+          username: usernameInput,
+          password: passwordInput,
+          email: emailInput || "",
+          role: ROLE_MEMBER,
+          isBanned: false,
+          mutedUntil: 0,
+          createdAt: Date.now()
+        });
+
+        showAuthAlert("Đăng ký thành công", false);
+        document.getElementById('login-username').value = usernameInput;
+        document.getElementById('login-password').value = '';
+        setTimeout(() => switchAuthTab('login'), 1200);
+      } catch (err) {
+        console.error(err);
+        showAuthAlert("Đăng ký thất bại (Lỗi kết nối hệ thống)");
+      }
+    }
+
+    async function handleRequestResetOTP(e) {
+      e.preventDefault();
+      const username = document.getElementById('forgot-username').value.trim();
+      const email = document.getElementById('forgot-email').value.trim();
+
+      if (!username || !email) return showAppModal("Lỗi", "Vui lòng nhập đầy đủ tên tài khoản và email!");
+
+      try {
+        const userKey = username.toLowerCase();
+        const userSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, `users/${userKey}`));
+
+        if (!userSnap.exists()) return showAppModal("Lỗi", "Tài khoản không tồn tại!");
+        const u = userSnap.val();
+        if (!u.email || u.email.toLowerCase() !== email.toLowerCase()) {
+          return showAppModal("Lỗi", "Email nhập vào không khớp với email liên kết của tài khoản!");
+        }
+
+        const autoOTP = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiryDate = Date.now() + 15 * 24 * 60 * 60 * 1000;
+
+        await window.dbRefs.set(window.dbRefs.ref(window.db, `reset_requests/${userKey}`), {
+          username: u.username,
+          email: email,
+          otp: autoOTP,
+          reason: "quên mật khẩu yêu cầu xác nhận email",
+          status: "đang chờ user dùng",
+          requestedAt: Date.now(),
+          expiresAt: expiryDate
+        });
+
+        await sendOTPEmailViaEmailJS(u.username, email, autoOTP);
+
+        showAppModal("Thành công", `Đã khởi tạo và gửi mã OTP 6 số đến email [${email}] thành công!`);
+      } catch (err) {
+        showAppModal("Lỗi", "Không thể gửi yêu cầu.");
+      }
+    }
+
+    async function handleResetPasswordWithOTP(e) {
+      e.preventDefault();
+      const username = document.getElementById('reset-username').value.trim();
+      const otp = document.getElementById('reset-otp-code').value.trim();
+      const newPass = document.getElementById('reset-new-pass').value;
+
+      if (!username || !otp || !newPass) return showAppModal("Lỗi", "Vui lòng nhập đầy đủ thông tin!");
+      if (newPass.length < 8) return showAppModal("Lỗi", "Mật khẩu mới tối thiểu 8 ký tự!");
+
+      try {
+        const userKey = username.toLowerCase();
+        const reqSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, `reset_requests/${userKey}`));
+
+        if (!reqSnap.exists()) return showAppModal("Lỗi", "Không tìm thấy yêu cầu đặt lại MK!");
+        const reqData = reqSnap.val();
+        if (reqData.expiresAt && Date.now() > reqData.expiresAt) {
+          return showAppModal("Lỗi", "Mã OTP đã quá hạn 15 ngày và bị khóa!");
+        }
+        if (!reqData.otp || reqData.otp !== otp) return showAppModal("Lỗi", "Mã OTP không đúng!");
+
+        await window.dbRefs.update(window.dbRefs.ref(window.db, `users/${userKey}`), { password: newPass });
+        await window.dbRefs.update(window.dbRefs.ref(window.db, `reset_requests/${userKey}`), { status: "user đã sử dụng thành công" });
+        setTimeout(async () => {
+          await window.dbRefs.remove(window.dbRefs.ref(window.db, `reset_requests/${userKey}`));
+        }, 24 * 3600 * 1000);
+
+        showAppModal("Thành công", "Đã đổi mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.");
+        switchAuthTab('login');
+      } catch (err) {
+        showAppModal("Lỗi", "Đổi mật khẩu thất bại!");
+      }
+    }
+
+    function checkActiveSession() {
+      const savedUser = localStorage.getItem('active_chat_user');
+      if (savedUser) {
+        try {
+          currentUser = JSON.parse(savedUser);
+          setupPresence();
+          showMenuScreen();
+        } catch (e) {
+          showAuthScreen();
+        }
+      } else {
+        showAuthScreen();
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('active_chat_user');
+      currentUser = null;
+      const audio = document.getElementById('global-auto-audio');
+      if (audio) { audio.pause(); audio.src = ''; }
+      isAudioPlaying = false;
+      document.getElementById('floating-music-ball').classList.add('hidden');
+      document.getElementById('quick-search-btn-container').classList.add('hidden');
+      showAuthScreen();
+    }
+
+    function showAuthScreen() {
+      document.getElementById('auth-screen').classList.remove('hidden');
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('chat-screen').classList.add('hidden');
+      document.getElementById('friends-screen').classList.add('hidden');
+      document.getElementById('private-chat-screen').classList.add('hidden');
+      document.getElementById('profile-screen').classList.add('hidden');
+      document.getElementById('admin-screen').classList.add('hidden');
+      document.getElementById('boss-screen').classList.add('hidden');
+      document.getElementById('search-user-screen').classList.add('hidden');
+      document.getElementById('public-profile-screen').classList.add('hidden');
+    }
+
+    function showMenuScreen() {
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('chat-screen').classList.add('hidden');
+      document.getElementById('friends-screen').classList.add('hidden');
+      document.getElementById('private-chat-screen').classList.add('hidden');
+      document.getElementById('profile-screen').classList.add('hidden');
+      document.getElementById('admin-screen').classList.add('hidden');
+      document.getElementById('boss-screen').classList.add('hidden');
+      document.getElementById('search-user-screen').classList.add('hidden');
+      document.getElementById('public-profile-screen').classList.add('hidden');
+      document.getElementById('menu-screen').classList.remove('hidden');
+
+      document.getElementById('floating-music-ball').classList.remove('hidden');
+      const quickBtn = document.getElementById('quick-search-btn-container');
+      if (quickBtn) quickBtn.classList.add('hidden');
+
+      if (currentUser) {
+        document.getElementById('menu-user-display').innerText = currentUser.username;
+        document.getElementById('menu-nickname-display').innerText = currentUser.nickname || currentUser.username;
+        document.getElementById('menu-user-avatar').src = currentUser.avatar || generateDefaultAvatar(currentUser.username);
+
+        const badge = document.getElementById('menu-role-badge');
+        if (badge) {
+          badge.outerHTML = `<div id="menu-role-badge" class="inline-block">${getRoleBadgeHTML(currentUser.role)}</div>`;
+        }
+
+        const adminBtn = document.getElementById('menu-admin-btn');
+        if (adminBtn) {
+          if (currentUser.role <= ROLE_OP) adminBtn.classList.remove('hidden');
+          else adminBtn.classList.add('hidden');
+        }
+      }
+    }
+
+    function backToMenu() {
+      showMenuScreen();
+    }
+
+    function setupPresence() {
+      if (!currentUser) return;
+      const userKey = currentUser.username.toLowerCase();
+      const statusRef = window.dbRefs.ref(window.db, `users/${userKey}/onlineStatus`);
+      const connectedRef = window.dbRefs.ref(window.db, '.info/connected');
+
+      window.dbRefs.onValue(connectedRef, (snap) => {
+        if (snap.val() === true) {
+          window.dbRefs.onDisconnect(statusRef).set(false);
+          window.dbRefs.set(statusRef, true);
+        }
+      });
+    }
+
+    async function ensureAdminExists() {
+      try {
+        const adminRef = window.dbRefs.ref(window.db, `users/${DEFAULT_ADMIN_USER}`);
+        const snap = await window.dbRefs.get(adminRef);
+        if (!snap.exists()) {
+          await window.dbRefs.set(adminRef, {
+            username: DEFAULT_ADMIN_USER,
+            password: DEFAULT_ADMIN_PASS,
+            role: ROLE_ADMIN,
+            isBanned: false,
+            mutedUntil: 0,
+            createdAt: Date.now()
+          });
+        }
+      } catch (err) {
+        console.warn("Lỗi kiểm tra admin:", err);
+      }
+    }
+
+    function generateDefaultAvatar(username) {
+      const safeUsername = String(username || 'User');
+      const initial = safeUsername.charAt(0).toUpperCase();
+      const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#6366f1'];
+      let sum = 0;
+      for (let i = 0; i < safeUsername.length; i++) sum += safeUsername.charCodeAt(i);
+      const color = colors[sum % colors.length];
+
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+        <rect width="100%" height="100%" fill="${color}"/>
+        <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="50" font-weight="bold" fill="#ffffff">${initial}</text>
+      </svg>`;
+      return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+    }
+
+    function escapeHTML(str) {
+      return String(str || '').replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+
+    function parseTagsInText(text) {
+      const escaped = escapeHTML(text);
+      return escaped.replace(/@([a-zA-Z0-9_]+)/g, '<span class="bg-amber-500/20 text-amber-300 font-bold px-1 rounded border border-amber-500/30">@$1</span>');
+    }
+
+    function showAppModal(title, desc, confirmCallback = null) {
+      document.getElementById('app-modal-title').innerText = title;
+      document.getElementById('app-modal-desc').innerText = desc;
+      const confirmBtn = document.getElementById('app-modal-confirm-btn');
+      confirmBtn.onclick = () => {
+        closeAppModal();
+        if (confirmCallback) confirmCallback();
+      };
+      document.getElementById('app-modal').classList.remove('hidden');
+    }
+
+    function closeAppModal() {
+      document.getElementById('app-modal').classList.add('hidden');
+    }
+
+    function openChatScreen() {
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('chat-screen').classList.remove('hidden');
+      if (currentUser) {
+        document.getElementById('chat-header-user').innerText = currentUser.username;
+        const roleBadgeElem = document.getElementById('chat-role-badge');
+        if (roleBadgeElem) roleBadgeElem.outerHTML = `<div id="chat-role-badge" class="inline-block">${getRoleBadgeHTML(currentUser.role)}</div>`;
+      }
+      initChatBoxListener();
+      initOnlineCountListener();
+    }
+
+    function openFriendsScreen() {
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('private-chat-screen').classList.add('hidden');
+      document.getElementById('friends-screen').classList.remove('hidden');
+      loadFriendsAndRequests();
+      listenFriendRequests();
+    }
+
+    function backFromPrivateToFriends() {
+      document.getElementById('private-chat-screen').classList.add('hidden');
+      openFriendsScreen();
+    }
+
+    function openProfileScreen() {
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('profile-screen').classList.remove('hidden');
+      if (currentUser) {
+        document.getElementById('profile-username').innerText = currentUser.username;
+        document.getElementById('profile-nickname-input').value = currentUser.nickname || '';
+        document.getElementById('profile-bio-input').value = currentUser.bio || '';
+        document.getElementById('profile-email-input').value = currentUser.email || '';
+        document.getElementById('profile-role').innerHTML = getRoleBadgeHTML(currentUser.role);
+        document.getElementById('profile-avatar-img').src = currentUser.avatar || generateDefaultAvatar(currentUser.username);
+        
+        const coverElem = document.getElementById('my-cover-bg');
+        if (currentUser.cover) {
+          coverElem.style.backgroundImage = `url('${currentUser.cover}')`;
+        } else {
+          coverElem.style.backgroundImage = 'none';
+        }
+      }
+    }
+
+    function openAdminScreen() {
+      if (!currentUser || currentUser.role > 1) return;
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('admin-screen').classList.remove('hidden');
+      switchAdminTab(1);
+      loadAdminAllData();
+    }
+
+    function switchAdminTab(tabIndex) {
+      for (let i = 1; i <= 3; i++) {
+        const content = document.getElementById(`admin-tab-content-${i}`);
+        const btn = document.getElementById(`admin-tab-btn-${i}`);
+        if (content) content.classList.add('hidden');
+        if (btn) {
+          btn.className = "px-4 py-2 text-xs font-bold rounded-t-xl bg-gray-900 text-gray-400 border-t border-x border-transparent";
+        }
+      }
+      const activeContent = document.getElementById(`admin-tab-content-${tabIndex}`);
+      const activeBtn = document.getElementById(`admin-tab-btn-${tabIndex}`);
+      if (activeContent) activeContent.classList.remove('hidden');
+      if (activeBtn) {
+        activeBtn.className = "px-4 py-2 text-xs font-bold rounded-t-xl bg-gray-950 text-blue-400 border-t border-x border-blue-500/40";
+      }
+
+      if (tabIndex === 2) {
+        loadAdminSongRequests();
+        loadAdminApprovedSongs();
+        loadAdminMediaRequests();
+      }
+    }
+
+    function openSearchUserScreen() {
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('search-user-screen').classList.remove('hidden');
+    }
+
+    async function executeSearchUser(keyword) {
+      const container = document.getElementById('search-user-results-container');
+      if (!container) return;
+      const term = keyword.trim().toLowerCase();
+      if (!term) {
+        container.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-4">Nhập tên đăng nhập để tìm kiếm...</p>';
+        return;
+      }
+
+      const snap = await window.dbRefs.get(window.dbRefs.ref(window.db, 'users'));
+      if (!snap.exists()) {
+        container.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-4">Không tìm thấy user nào.</p>';
+        return;
+      }
+
+      container.innerHTML = '';
+      const users = snap.val();
+      let found = 0;
+
+      Object.keys(users).forEach(k => {
+        const u = users[k];
+        if (k.includes(term) || (u.nickname && u.nickname.toLowerCase().includes(term))) {
+          found++;
+          const isOnline = !!u.onlineStatus;
+          const avatar = u.avatar || generateDefaultAvatar(u.username);
+          const nickname = u.nickname || u.username;
+
+          container.innerHTML += `
+            <div class="flex items-center justify-between p-3 bg-gray-900 rounded-xl border border-gray-800 text-xs relative">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="relative">
+                  <img src="${avatar}" class="w-10 h-10 rounded-full object-cover border border-gray-700">
+                  <span class="absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-emerald-500' : 'bg-gray-500'} border-2 border-gray-900 rounded-full"></span>
+                </div>
+                <div class="truncate">
+                  <div class="font-bold text-white text-sm truncate">${escapeHTML(nickname)}</div>
+                  <div class="text-[10px] text-gray-400">@${escapeHTML(u.username)} | ${isOnline ? '<span class="text-emerald-400 font-bold">Online</span>' : 'Offline'}</div>
+                </div>
+              </div>
+              
+              <div class="relative">
+                <button type="button" onclick="toggleUserCardMenu('${u.username}')" class="w-8 h-8 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg flex items-center justify-center">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div id="user-menu-${u.username}" class="hidden absolute right-0 top-9 z-50 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-36 p-1 space-y-1">
+                  <button type="button" onclick="openPublicProfileByUsername('${u.username}')" class="w-full text-left px-2 py-1.5 hover:bg-gray-800 rounded text-xs text-white">1. Xem hồ sơ</button>
+                  <button type="button" onclick="sendFriendRequestDirect('${u.username}'); toggleUserCardMenu('${u.username}');" class="w-full text-left px-2 py-1.5 hover:bg-gray-800 rounded text-xs text-white">2. Thêm bạn</button>
+                  <button type="button" onclick="reportUserFromSearch('${u.username}')" class="w-full text-left px-2 py-1.5 hover:bg-gray-800 rounded text-xs text-rose-400">3. Báo xấu</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      if (found === 0) {
+        container.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-4">Không tìm thấy user phù hợp.</p>';
+      }
+    }
+
+    function toggleUserCardMenu(username) {
+      const menu = document.getElementById(`user-menu-${username}`);
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    function reportUserFromSearch(username) {
+      openReportModal();
+      document.getElementById('report-type-select').value = '2';
+      switchReportTypeUI();
+      document.getElementById('report-target-username').value = username;
+    }
+
+    async function openPublicProfileByUsername(username) {
+      const snap = await window.dbRefs.get(window.dbRefs.ref(window.db, `users/${username.toLowerCase()}`));
+      if (!snap.exists()) return showAppModal("Lỗi", "Không tìm thấy thông tin user!");
+      const u = snap.val();
+
+      document.getElementById('pub-username').innerText = `@${u.username}`;
+      document.getElementById('pub-nickname').innerText = u.nickname || u.username;
+      document.getElementById('pub-avatar-img').src = u.avatar || generateDefaultAvatar(u.username);
+      document.getElementById('pub-bio').innerText = u.bio || "Chưa có tiểu sử nào.";
+      document.getElementById('pub-role-badge').innerHTML = getRoleBadgeHTML(u.role !== undefined ? u.role : ROLE_MEMBER);
+
+      if (u.cover) {
+        document.getElementById('pub-cover-bg').style.backgroundImage = `url('${u.cover}')`;
+      } else {
+        document.getElementById('pub-cover-bg').style.backgroundImage = 'none';
+      }
+
+      window._currentViewingProfileUser = u.username;
+
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('search-user-screen').classList.add('hidden');
+      document.getElementById('public-members-tab').classList.add('hidden');
+      document.getElementById('user-modal').classList.add('hidden');
+      document.getElementById('public-profile-screen').classList.remove('hidden');
+    }
+
+    function backToPreviousFromPublicProfile() {
+      document.getElementById('public-profile-screen').classList.add('hidden');
+      showMenuScreen();
+    }
+
+    function openPrivateChatFromPublicProfile() {
+      if (!window._currentViewingProfileUser) return;
+      document.getElementById('public-profile-screen').classList.add('hidden');
+      openPrivateChat(window._currentViewingProfileUser);
+    }
+
+    function sendFriendRequestFromPublicProfile() {
+      if (!window._currentViewingProfileUser) return;
+      sendFriendRequestDirect(window._currentViewingProfileUser);
+    }
+
+    function togglePublicRelationshipsList() {
+      const box = document.getElementById('pub-relationships-container');
+      if (box) box.classList.toggle('hidden');
+    }
+
+    function initDraggableMusicBall() {
+      const ball = document.getElementById('floating-music-ball');
+      if (!ball) return;
+      let isDragging = false, startX, startY, initialX, initialY;
+
+      ball.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = ball.getBoundingClientRect();
+        initialX = rect.left;
+        initialY = rect.top;
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        ball.style.left = `${initialX + dx}px`;
+        ball.style.top = `${initialY + dy}px`;
+        ball.style.bottom = 'auto';
+        ball.style.right = 'auto';
+      });
+
+      document.addEventListener('mouseup', () => { isDragging = false; });
+    }
+
+    function initChatBoxListener() {
+      const box = document.getElementById('chat-box');
+      if (!box) return;
+      const ref = window.dbRefs.query(window.dbRefs.ref(window.db, 'messages'), window.dbRefs.limitToLast(100));
+
+      window.dbRefs.onValue(ref, async (snap) => {
+        box.innerHTML = `<div class="text-center my-1"><span class="px-2.5 py-0.5 bg-gray-900 border border-gray-800 rounded-full text-[9px] text-gray-400 inline-block">🔒 Lệnh: /help, /online, /clear all|&lt;user&gt;, /khoamom &lt;user&gt; dd/mm/yyyy/hh/mm, /momom &lt;user&gt;, /report</span></div>`;
+        if (snap.exists()) {
+          const data = snap.val();
+          const usersSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, 'users'));
+          const usersMap = usersSnap.exists() ? usersSnap.val() : {};
+
+          Object.keys(data).forEach(k => {
+            const msg = data[k];
+            const isMe = currentUser && msg.sender.toLowerCase() === currentUser.username.toLowerCase();
+            const senderKey = msg.sender.toLowerCase();
+            const senderData = usersMap[senderKey] || {};
+            const senderRole = senderData.role !== undefined ? senderData.role : ROLE_MEMBER;
+            const rulesBadgeHTML = getRoleBadgeHTML(senderRole);
+            const timeAgoStr = formatTimeAgo(msg.timestamp);
+
+            let mediaContent = '';
+            if (msg.imageUrl) {
+              if (msg.imageUrl.startsWith('data:video/')) {
+                mediaContent = `<video src="${msg.imageUrl}" class="rounded-xl max-w-full max-h-48 cursor-pointer border border-gray-700 my-1" onclick="openMediaViewer('${msg.imageUrl}', 'video')"></video>`;
+              } else {
+                mediaContent = `<img src="${msg.imageUrl}" class="rounded-xl max-w-full max-h-48 object-cover cursor-pointer border border-gray-700 my-1" onclick="openMediaViewer('${msg.imageUrl}', 'image')">`;
+              }
+            }
+
+            let textContent = '';
+            if (msg.isRelationshipReq) {
+              textContent = `
+                <div class="px-3 py-2 bg-purple-950/60 border border-purple-500/40 rounded-xl space-y-2">
+                  <p class="text-xs text-white">${parseTagsInText(msg.text)}</p>
+                  <div class="flex gap-2">
+                    <button type="button" onclick="acceptRelationship('${msg.relId}', '${msg.relation}', '${[currentUser.username.toLowerCase(), msg.sender.toLowerCase()].sort().join('_')}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[10px]">Đồng ý</button>
+                    <button type="button" onclick="declineRelationship('${msg.relId}', '${[currentUser.username.toLowerCase(), msg.sender.toLowerCase()].sort().join('_')}')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded text-[10px]">Không đồng ý</button>
+                  </div>
+                </div>
+              `;
+            } else if (msg.text) {
+              textContent = `<div class="px-2.5 py-1.5 rounded-xl text-[11px] leading-relaxed shadow ${isMe ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-tr-none' : 'bg-gray-800 text-gray-100 rounded-tl-none'}">${parseTagsInText(msg.text)}</div>`;
+            }
+
+            box.innerHTML += `
+              <div class="flex gap-2.5 ${isMe ? 'flex-row-reverse' : 'flex-row'} items-start my-2 animate-fade-in">
+                <img src="${msg.avatar || generateDefaultAvatar(msg.sender)}" class="w-8 h-8 rounded-full object-cover border border-gray-700 cursor-pointer flex-shrink-0 shadow" onclick="openPublicProfileByUsername('${msg.sender}')">
+                <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[80%] space-y-1">
+                  <div class="flex items-center gap-1.5 flex-wrap ${isMe ? 'flex-row-reverse' : 'flex-row'}">
+                    <span class="text-[10px] font-bold text-amber-300 cursor-pointer" onclick="openPublicProfileByUsername('${msg.sender}')">${escapeHTML(msg.nickname || msg.sender)}</span>
+                    <span>${rulesBadgeHTML}</span>
+                    <span class="text-[9px] text-gray-500 font-mono">${timeAgoStr}</span>
+                  </div>
+                  ${mediaContent}
+                  ${textContent}
+                </div>
+              </div>
+            `;
+          });
+          box.scrollTop = box.scrollHeight;
+        }
+      });
+    }
+
+    function initOnlineCountListener() {
+      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'users'), (snap) => {
+        if (!snap.exists()) return;
+        let online = 0;
+        const users = snap.val();
+        Object.keys(users).forEach(k => { if (users[k].onlineStatus) online++; });
+        const tag = document.getElementById('chat-online-count');
+        if (tag) tag.innerText = `${Math.max(1, online)} Online`;
+      });
+    }
+
+    function handleChatKeyDown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage(e);
+      }
+    }
+
+    function autoExpandTextarea(elem) {
+      elem.style.height = 'auto';
+      elem.style.height = Math.min(elem.scrollHeight, 100) + 'px';
+    }
+
+    async function handleSendMessage(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text || !currentUser) return;
+
+      input.value = '';
+      input.style.height = 'auto';
+
+      if (text.toLowerCase() === '/report') {
+        openReportModal();
+        return;
+      }
+
+      if (text.toLowerCase() === '/online') {
+        const usersSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, 'users'));
+        if (usersSnap.exists()) {
+          const users = usersSnap.val();
+          let onlineList = [];
+          Object.keys(users).forEach(k => {
+            if (users[k].onlineStatus) onlineList.push(users[k].nickname || users[k].username);
+          });
+          showAppModal("Danh Sách Online", `Hiện có ${onlineList.length} người đang online:\n- ${onlineList.join(', ')}`);
+        }
+        return;
+      }
+
+      if (currentUser.mutedUntil && currentUser.mutedUntil > Date.now()) {
+        const expireDate = new Date(currentUser.mutedUntil).toLocaleString();
+        return showAppModal("Bị Khóa Mõm", `Bạn đang bị cấm chat đến hết thời gian: ${expireDate}`);
+      }
+
+      const newMsgRef = window.dbRefs.push(window.dbRefs.ref(window.db, 'messages'));
+      await window.dbRefs.set(newMsgRef, {
+        sender: currentUser.username,
+        nickname: currentUser.nickname || currentUser.username,
+        text: text,
+        avatar: currentUser.avatar || generateDefaultAvatar(currentUser.username),
+        timestamp: Date.now()
+      });
+    }
+
+    function handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (!file || !currentUser) return;
+      const reader = new FileReader();
+      reader.onload = async function(evt) {
+        const base64 = evt.target.result;
+
+        const newMsgRef = window.dbRefs.push(window.dbRefs.ref(window.db, 'messages'));
+        await window.dbRefs.set(newMsgRef, {
+          sender: currentUser.username,
+          nickname: currentUser.nickname || currentUser.username,
+          imageUrl: base64,
+          avatar: currentUser.avatar || generateDefaultAvatar(currentUser.username),
+          timestamp: Date.now()
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function openMediaViewer(url, type) {
+      const modal = document.getElementById('media-viewer-modal');
+      const container = document.getElementById('media-viewer-content');
+      container.innerHTML = '';
+
+      if (type === 'video') {
+        const video = document.createElement('video');
+        video.src = url;
+        video.controls = true;
+        video.autoplay = true;
+        video.className = "max-w-full max-h-full rounded-xl shadow-2xl";
+        container.appendChild(video);
+      } else {
+        const img = document.createElement('img');
+        img.src = url;
+        img.className = "max-w-full max-h-full object-contain rounded-xl shadow-2xl";
+        container.appendChild(img);
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeMediaViewer() {
+      const container = document.getElementById('media-viewer-content');
+      container.innerHTML = '';
+      document.getElementById('media-viewer-modal').classList.add('hidden');
+    }
+
+    function listenPinnedMessage() {
+      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'pinned_message'), (snap) => {
+        const bar = document.getElementById('pinned-bar');
+        const textElem = document.getElementById('pinned-text');
+        if (snap.exists() && snap.val()) {
+          textElem.innerText = snap.val();
+          bar.classList.remove('hidden');
+        } else {
+          bar.classList.add('hidden');
+        }
+      });
+    }
+
+    function handleAvatarUpload(e) {
+      const file = e.target.files[0];
+      if (!file || !currentUser) return;
+      const reader = new FileReader();
+      reader.onload = async function(evt) {
+        const base64 = evt.target.result;
+        currentUser.avatar = base64;
+        localStorage.setItem('active_chat_user', JSON.stringify(currentUser));
+        document.getElementById('profile-avatar-img').src = base64;
+
+        await window.dbRefs.update(window.dbRefs.ref(window.db, `users/${currentUser.username.toLowerCase()}`), { avatar: base64 });
+        showAppModal("Thành công", "Đã cập nhật Avatar mới!");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // XỬ LÝ LƯU ẢNH BÌA
+    function handleCoverUpload(e) {
+      const file = e.target.files[0];
+      if (!file || !currentUser) return;
+      const reader = new FileReader();
+      reader.onload = async function(evt) {
+        const base64 = evt.target.result;
+        currentUser.cover = base64;
+        localStorage.setItem('active_chat_user', JSON.stringify(currentUser));
+        
+        const coverElem = document.getElementById('my-cover-bg');
+        if (coverElem) coverElem.style.backgroundImage = `url('${base64}')`;
+
+        await window.dbRefs.update(window.dbRefs.ref(window.db, `users/${currentUser.username.toLowerCase()}`), { cover: base64 });
+        showAppModal("Thành công", "Đã cập nhật và lưu Ảnh Bìa!");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function handleSaveBio() {
+      if (!currentUser) return;
+      const bio = document.getElementById('profile-bio-input').value.trim();
+      currentUser.bio = bio;
+      localStorage.setItem('active_chat_user', JSON.stringify(currentUser));
+      await window.dbRefs.update(window.dbRefs.ref(window.db, `users/${currentUser.username.toLowerCase()}`), { bio: bio });
+      showAppModal("Thành công", "Đã cập nhật tiểu sử!");
+    }
+
+    async function handleSaveNickname() {
+      if (!currentUser) return;
+      const nick = document.getElementById('profile-nickname-input').value.trim();
+      if (!nick) return showAppModal("Lỗi", "Vui lòng nhập biệt danh!");
+
+      currentUser.nickname = nick;
+      localStorage.setItem('active_chat_user', JSON.stringify(currentUser));
+      await window.dbRefs.update(window.dbRefs.ref(window.db, `users/${currentUser.username.toLowerCase()}`), { nickname: nick });
+      showAppModal("Thành công", "Đã cập nhật biệt danh mới!");
+    }
+
+    async function handleRequestEmailOTP() {
+      if (!currentUser) return;
+      const email = document.getElementById('profile-email-input').value.trim();
+      if (!email.includes('@')) return showAppModal("Lỗi", "Email không hợp lệ!");
+
+      currentUser.email = email;
+      localStorage.setItem('active_chat_user', JSON.stringify(currentUser));
+      await window.dbRefs.update(window.dbRefs.ref(window.db, `users/${currentUser.username.toLowerCase()}`), { email: email });
+
+      const autoOTP = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiryDate = Date.now() + 15 * 24 * 3600 * 1000;
+
+      await window.dbRefs.set(window.dbRefs.ref(window.db, `reset_requests/${currentUser.username.toLowerCase()}`), {
+        username: currentUser.username,
+        email: email,
+        otp: autoOTP,
+        reason: "yêu cầu xác nhận email",
+        status: "đang chờ user dùng",
+        requestedAt: Date.now(),
+        expiresAt: expiryDate
+      });
+
+      await sendOTPEmailViaEmailJS(currentUser.username, email, autoOTP);
+
+      document.getElementById('otp-section').classList.remove('hidden');
+      showAppModal("Thành công", `Đã tạo và gửi mã OTP xác nhận tới email [${email}]!`);
+    }
+
+    async function handleVerifyEmailOTP() {
+      const code = document.getElementById('profile-otp-input').value.trim();
+      if (!code || !currentUser) return;
+
+      const reqSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, `reset_requests/${currentUser.username.toLowerCase()}`));
+      if (!reqSnap.exists()) return showAppModal("Lỗi", "Không tìm thấy yêu cầu OTP!");
+      const req = reqSnap.val();
+
+      if (req.expiresAt && Date.now() > req.expiresAt) {
+        return showAppModal("Lỗi", "Mã OTP đã quá hạn 15 ngày và bị khóa!");
+      }
+      if (req.otp !== code) return showAppModal("Lỗi", "Mã OTP không chính xác!");
+
+      await window.dbRefs.update(window.dbRefs.ref(window.db, `reset_requests/${currentUser.username.toLowerCase()}`), { status: "user đã sử dụng thành công" });
+      setTimeout(async () => {
+        await window.dbRefs.remove(window.dbRefs.ref(window.db, `reset_requests/${currentUser.username.toLowerCase()}`));
+      }, 24 * 3600 * 1000);
+
+      showAppModal("Thành công", "Xác thực email và mã OTP thành công!");
+      document.getElementById('otp-section').classList.add('hidden');
+    }
+
+    async function handleUserSelfChangePasswordAdvanced() {
+      if (!currentUser) return;
+      const oldPass = document.getElementById('profile-old-pass').value;
+      const newPass = document.getElementById('profile-new-pass').value;
+      const renewPass = document.getElementById('profile-renew-pass').value;
+
+      if (!oldPass || !newPass || !renewPass) return showAppModal("Lỗi", "Vui lòng nhập đầy đủ mật khẩu!");
+      if (newPass.length < 8) return showAppModal("Lỗi", "Mật khẩu mới tối thiểu 8 ký tự!");
+      if (newPass !== renewPass) return showAppModal("Lỗi", "Mật khẩu mới nhập lại không khớp!");
+
+      const userSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, `users/${currentUser.username.toLowerCase()}`));
+      if (!userSnap.exists()) return;
+      const userData = userSnap.val();
+
+      if (userData.password !== oldPass) {
+        return showAppModal("Lỗi", "Mật khẩu cũ không chính xác!");
+      }
+
+      await window.dbRefs.update(window.dbRefs.ref(window.db, `users/${currentUser.username.toLowerCase()}`), { password: newPass });
+      document.getElementById('profile-old-pass').value = '';
+      document.getElementById('profile-new-pass').value = '';
+      document.getElementById('profile-renew-pass').value = '';
+      showAppModal("Thành công", "Đã đổi mật khẩu mới thành công!");
+    }
+
+    function loadAdminAllData() {
+      loadAdminUserList();
+      loadAdminFilesList();
+      loadAdminResetRequests();
+      loadAdminSongRequests();
+      loadAdminMediaRequests();
+      loadAdminApprovedSongs();
+    }
+
+    function loadAdminSongRequests() {
+      if (!currentUser || currentUser.role > 1) return;
+      const container = document.getElementById('admin-song-requests-list');
+      if (!container) return;
+
+      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'song_requests'), (snap) => {
+        container.innerHTML = '';
+        if (!snap.exists()) {
+          container.innerHTML = '<p class="text-xs text-gray-500 italic p-2 text-center">Không có yêu cầu duyệt nhạc nào.</p>';
+          return;
+        }
+
+        const items = snap.val();
+        Object.keys(items).forEach(id => {
+          const req = items[id];
+          container.innerHTML += `
+            <div class="flex items-center justify-between p-2.5 bg-gray-900 rounded-xl border border-gray-800 text-xs gap-2">
+              <div class="truncate flex-1">
+                <span class="font-bold text-purple-400 block">${escapeHTML(req.title)}</span>
+                <span class="text-[10px] text-gray-400">User yêu cầu: <b class="text-white">@${escapeHTML(req.sender)}</b></span>
+              </div>
+              <div class="flex gap-1">
+                <button type="button" onclick="openApproveSongModal('${req.fileId}', '${escapeHTML(req.title)}', '${req.sender}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[9px]">Duyệt nhạc</button>
+                <button type="button" onclick="promptDeleteSongRequest('${id}')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded text-[9px]">Xoá yêu cầu</button>
+              </div>
+            </div>
+          `;
+        });
+      });
+    }
+
+    function loadAdminMediaRequests() {
+      if (!currentUser || currentUser.role > 1) return;
+      const container = document.getElementById('admin-media-requests-list');
+      if (!container) return;
+
+      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'media_requests'), (snap) => {
+        container.innerHTML = '';
+        if (!snap.exists()) {
+          container.innerHTML = '<p class="text-xs text-gray-500 italic p-2 text-center">Không có ảnh/video chờ duyệt nào.</p>';
+          return;
+        }
+
+        const items = snap.val();
+        Object.keys(items).forEach(id => {
+          const req = items[id];
+          container.innerHTML += `
+            <div class="flex items-center justify-between p-2.5 bg-gray-900 rounded-xl border border-gray-800 text-xs gap-2">
+              <div class="truncate flex-1">
+                <span class="font-bold text-blue-400 block">${escapeHTML(req.title || 'Tệp phương tiện')}</span>
+                <span class="text-[10px] text-gray-400">Gửi bởi: <b class="text-white">@${escapeHTML(req.sender)}</b></span>
+              </div>
+              <div class="flex gap-1">
+                <button type="button" onclick="deleteMediaRequest('${id}')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded text-[9px]">Xoá</button>
+              </div>
+            </div>
+          `;
+        });
+      });
+    }
+
+    async function deleteMediaRequest(id) {
+      await window.dbRefs.remove(window.dbRefs.ref(window.db, `media_requests/${id}`));
+      showAppModal("Thành công", "Đã xóa yêu cầu kiểm duyệt phương tiện.");
+    }
+
+    let currentApprovalSongData = null;
+
+    function openApproveSongModal(fileId, defaultTitle, sender) {
+      currentApprovalSongData = { fileId, sender };
+      const titleInput = document.getElementById('approve-modal-song-title');
+      if (titleInput) titleInput.value = defaultTitle;
+      
+      const confirmBtn = document.getElementById('approve-modal-confirm-btn');
+      confirmBtn.onclick = () => {
+        const finalTitle = titleInput.value.trim() || defaultTitle;
+        const coverInput = document.getElementById('approve-modal-song-cover');
+        const coverFile = coverInput ? coverInput.files[0] : null;
+
+        if (coverFile) {
+          const coverReader = new FileReader();
+          coverReader.onload = (e) => {
+            executeApproveSong(fileId, finalTitle, sender, e.target.result);
+          };
+          coverReader.readAsDataURL(coverFile);
+        } else {
+          executeApproveSong(fileId, finalTitle, sender);
+        }
+      };
+
+      document.getElementById('approve-song-modal').classList.remove('hidden');
+    }
+
+    function executeApproveSong(fileId, title, sender, newCoverUrl = null) {
+      showConfirmModal("Xác Nhận Duyệt Nhạc", `Bạn chắc chắn muốn duyệt bài hát [${title}] này không?`, async () => {
+        // Lấy dữ liệu file & request hiện có
+        const reqSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, `song_requests/${fileId}`));
+        let coverUrl = newCoverUrl;
+        let durationStr = "0:00";
+
+        if (reqSnap.exists()) {
+          const rData = reqSnap.val();
+          if (!coverUrl) coverUrl = rData.coverUrl || "";
+          durationStr = rData.durationStr || "0:00";
+        }
+
+        // Lấy thời lượng từ tệp nếu chưa có hoặc đang là 0:00
+        if (!durationStr || durationStr === "0:00") {
+          const fileSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, `system_files/${fileId}`));
+          if (fileSnap.exists()) {
+            const fData = fileSnap.val();
+            if (fData.content) {
+              durationStr = await calculateAudioDuration(fData.content);
+            }
+          }
+        }
+
+        await window.dbRefs.set(window.dbRefs.ref(window.db, `approved_music/${fileId}`), {
+          title: title,
+          fileId: fileId,
+          coverUrl: coverUrl || "",
+          durationStr: durationStr || "0:00",
+          approvedBy: currentUser.username,
+          sender: sender,
+          approvedAt: Date.now()
+        });
+
+        await window.dbRefs.set(window.dbRefs.ref(window.db, 'active_bg_music'), {
+          fileId: fileId,
+          title: title,
+          updatedAt: Date.now()
+        });
+
+        await window.dbRefs.remove(window.dbRefs.ref(window.db, `song_requests/${fileId}`));
+        closeApproveSongModal();
+        showAppModal("Thành công", `Đã duyệt và phát bài hát [${title}] thành công!`);
+      });
+    }
+
+    function promptDeleteSongRequest(id) {
+      showConfirmModal("Xác Nhận Xoá Yêu Cầu", "Bạn có chắc muốn xoá yêu cầu duyệt nhạc này không?", async () => {
+        await window.dbRefs.remove(window.dbRefs.ref(window.db, `song_requests/${id}`));
+        showAppModal("Thành công", "Đã xoá yêu cầu duyệt nhạc.");
+      });
+    }
+
+    function loadAdminApprovedSongs() {
+      if (!currentUser || currentUser.role > 1) return;
+      const container = document.getElementById('admin-approved-songs-list');
+      if (!container) return;
+
+      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'approved_music'), (snap) => {
+        container.innerHTML = '';
+        if (!snap.exists()) {
+          container.innerHTML = '<p class="text-xs text-gray-500 italic p-2 text-center">Chưa có bài hát nào được duyệt.</p>';
+          return;
+        }
+
+        const items = snap.val();
+        Object.keys(items).forEach(fileId => {
+          const song = items[fileId];
+          container.innerHTML += `
+            <div class="flex items-center justify-between p-2.5 bg-gray-900 rounded-xl border border-gray-800 text-xs gap-2">
+              <div class="truncate flex-1">
+                <span class="font-bold text-amber-400 block">${escapeHTML(song.title)}</span>
+                <span class="text-[9px] text-gray-400 block">Duyệt bởi: <b class="text-emerald-400">@${escapeHTML(song.approvedBy || 'admin')}</b></span>
+              </div>
+              <button type="button" onclick="promptDeleteApprovedSong('${fileId}')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded text-[9px]">Xoá bài hát</button>
+            </div>
+          `;
+        });
+      });
+    }
+
+    function promptDeleteApprovedSong(fileId) {
+      showConfirmModal("Xác Nhận Xoá Bài Hát", "Bạn có chắc chắn muốn xoá bài hát đã duyệt này không?", async () => {
+        await window.dbRefs.remove(window.dbRefs.ref(window.db, `approved_music/${fileId}`));
+        await window.dbRefs.remove(window.dbRefs.ref(window.db, `system_files/${fileId}`));
+        showAppModal("Thành công", "Đã xoá bài hát khỏi hệ thống!");
+      });
+    }
+
+    async function loadAdminUserList() {
+      if (!currentUser || currentUser.role > 1) return;
+      const tbody = document.getElementById('admin-user-table-body');
+      const countBadge = document.getElementById('admin-user-count');
+      if (!tbody) return;
+      tbody.innerHTML = '<tr><td colspan="5" class="px-3 py-3 text-center text-gray-500">Đang tải danh sách...</td></tr>';
+
+      try {
+        const snap = await window.dbRefs.get(window.dbRefs.ref(window.db, 'users'));
+        tbody.innerHTML = '';
+        if (!snap.exists()) {
+          if (countBadge) countBadge.innerText = "0 users";
+          return;
+        }
+
+        const usersData = snap.val();
+        const keys = Object.keys(usersData);
+        if (countBadge) countBadge.innerText = `${keys.length} users`;
+
+        keys.forEach(k => {
+          const u = usersData[k];
+          const isTargetAdmin = u.role === ROLE_ADMIN || k === DEFAULT_ADMIN_USER;
+
+          let emailDisplay = escapeHTML(u.email || 'Chưa liên kết');
+          let passDisplay = escapeHTML(u.password);
+          
+          if (currentUser.role === ROLE_OP && isTargetAdmin) {
+            emailDisplay = '<span class="text-gray-600 italic">*** (Bảo mật)</span>';
+            passDisplay = '<span class="text-gray-600 italic">*** (Bảo mật)</span>';
+          }
+
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-gray-800/40 border-b border-gray-800/40";
+          tr.innerHTML = `
+            <td class="px-3 py-2 font-semibold text-white">${escapeHTML(u.nickname || u.username)} (${escapeHTML(u.username)})</td>
+            <td class="px-3 py-2 text-gray-400">${emailDisplay}</td>
+            <td class="px-3 py-2 font-mono text-gray-400">${passDisplay}</td>
+            <td class="px-3 py-2">
+              <select onchange="updateUserRole('${k}', this.value)" class="bg-gray-950 text-amber-400 border border-gray-800 rounded px-1.5 py-0.5 text-[10px]" ${currentUser.role === ROLE_OP && isTargetAdmin ? 'disabled' : ''}>
+                <option value="0" ${u.role === ROLE_ADMIN ? 'selected' : ''}>ADMIN</option>
+                <option value="1" ${u.role === ROLE_OP ? 'selected' : ''}>OP (Phó)</option>
+                <option value="2" ${u.role === ROLE_MEMBER || u.role === undefined ? 'selected' : ''}>MEMBER</option>
+              </select>
+            </td>
+            <td class="px-3 py-2 text-right">
+              <div class="inline-flex gap-1">
+                <button type="button" onclick="editUserPasswordAdmin('${k}')" class="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold rounded" ${currentUser.role === ROLE_OP && isTargetAdmin ? 'disabled' : ''}>Đổi MK</button>
+                <button type="button" onclick="promptToggleBan('${k}', ${!!u.isBanned})" class="px-1.5 py-0.5 ${u.isBanned ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'} border text-[9px] font-bold rounded" ${currentUser.role === ROLE_OP && isTargetAdmin ? 'disabled' : ''}>${u.isBanned ? 'Mở BAN' : 'Ban'}</button>
+                <button type="button" onclick="promptDeleteUser('${k}')" class="px-1.5 py-0.5 bg-red-600/20 text-red-400 border border-red-500/30 text-[9px] font-bold rounded" ${currentUser.role === ROLE_OP ? 'disabled' : ''}>Xoá</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-3 py-3 text-center text-rose-400">Lỗi tải dữ liệu.</td></tr>';
+      }
+    }
+
+    async function updateUserRole(userKey, newRole) {
+      if (currentUser.role > 0) return showAppModal("Lỗi", "Chỉ Admin tối cao mới đổi được chức vụ!");
+      await window.dbRefs.update(window.dbRefs.ref(window.db, `users/${userKey}`), { role: parseInt(newRole) });
+      showAppModal("Thành công", "Đã phân quyền chức vụ mới!");
+    }
+
+    async function editUserPasswordAdmin(userKey) {
+      const newPass = prompt(`Nhập mật khẩu mới cho [${userKey}]:`);
+      if (!newPass || newPass.length < 8) return showAppModal("Lỗi", "Mật khẩu tối thiểu 8 ký tự!");
+      await window.dbRefs.update(window.dbRefs.ref(window.db, `users/${userKey}`), { password: newPass });
+      showAppModal("Thành công", "Đã đổi mật khẩu!");
+      loadAdminUserList();
+    }
+
+    function promptToggleBan(userKey, isBanned) {
+      showConfirmModal("Xác Nhận Ban Tài Khoản", `Bạn chắc muốn ${isBanned ? 'mở ban' : 'ban'} tài khoản [${userKey}] không?`, async () => {
+        await window.dbRefs.update(window.dbRefs.ref(window.db, `users/${userKey}`), { isBanned: !isBanned });
+        loadAdminUserList();
+        showAppModal("Thành công", "Đã cập nhật trạng thái tài khoản!");
+      });
+    }
+
+    function promptDeleteUser(userKey) {
+      if (userKey === DEFAULT_ADMIN_USER) return showAppModal("Lỗi", "Không thể xóa Admin gốc!");
+      showConfirmModal("Xác Nhận Xoá Tài Khoản", `Bạn chắc chắn muốn xóa vĩnh viễn tài khoản [${userKey}] không?`, async () => {
+        await window.dbRefs.remove(window.dbRefs.ref(window.db, `users/${userKey}`));
+        loadAdminUserList();
+        showAppModal("Thành công", "Đã xóa tài khoản!");
+      });
+    }
+
+    async function loadAdminResetRequests() {
+      if (!currentUser || currentUser.role > 1) return;
+      const tbody = document.getElementById('admin-reset-table-body');
+      const countBadge = document.getElementById('admin-reset-count');
+      if (!tbody) return;
+
+      try {
+        const snap = await window.dbRefs.get(window.dbRefs.ref(window.db, 'reset_requests'));
+        tbody.innerHTML = '';
+        if (!snap.exists()) {
+          if (countBadge) countBadge.innerText = "0 yêu cầu";
+          return tbody.innerHTML = '<tr><td colspan="5" class="px-3 py-3 text-center text-gray-500">Không có yêu cầu nào.</td></tr>';
+        }
+
+        const data = snap.val();
+        const keys = Object.keys(data);
+        if (countBadge) countBadge.innerText = `${keys.length} yêu cầu`;
+
+        for (const k of keys) {
+          const item = data[k];
+          const dateStr = new Date(item.requestedAt || Date.now()).toLocaleDateString();
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-gray-800/40 border-b border-gray-800/40";
+          tr.innerHTML = `
+            <td class="px-3 py-2 font-semibold text-white">${escapeHTML(item.username)}</td>
+            <td class="px-3 py-2 text-gray-300">${escapeHTML(item.reason || 'quên mật khẩu yêu cầu xác nhận email')}</td>
+            <td class="px-3 py-2 text-gray-400">
+              ${dateStr} <br>
+              ${item.otp ? `<span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 font-mono font-bold rounded">${item.otp}</span>` : '<span class="text-amber-500 italic">Chưa cấp</span>'}
+            </td>
+            <td class="px-3 py-2"><span class="px-2 py-0.5 rounded text-[9px] font-bold ${item.status === 'user đã sử dụng thành công' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${item.status || 'đang chờ user dùng'}</span></td>
+            <td class="px-3 py-2 text-right">
+              <button type="button" onclick="generateOTPForUser('${k}')" class="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-bold rounded mr-1">Tạo/Gửi OTP Email</button>
+              <button type="button" onclick="copyOTPSnippet('${escapeHTML(item.username)}', '${item.otp || 'XXXXXX'}')" class="px-2 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[9px] font-bold rounded mr-1" title="Copy Nội Dung"><i class="fa-solid fa-copy"></i></button>
+              <button type="button" onclick="deleteResetRequest('${k}')" class="px-1.5 py-0.5 bg-gray-800 text-gray-400 text-[9px] font-bold rounded border border-gray-700">Xóa</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        }
+      } catch(err) { tbody.innerHTML = '<tr><td colspan="5" class="px-3 py-3 text-center text-rose-400">Lỗi dữ liệu.</td></tr>'; }
+    }
+
+    function copyOTPSnippet(username, otp) {
+      const content = `chúng tôi đã ghi nhận và xét duyệt mã otp của tài khoản ${username} mã otp là ${otp}.vui lòng không chia sẻ với bất kỳ ai và sử dụng trong thời gian 15 ngày`;
+      const textArea = document.createElement("textarea");
+      textArea.value = content;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showAppModal("Đã copy", "Đã copy nội dung tin nhắn OTP vào clipboard thành công!");
+      } catch (err) {
+        showAppModal("Lỗi", "Không thể copy!");
+      }
+      document.body.removeChild(textArea);
+    }
+
+    async function generateOTPForUser(userKey) {
+      const userSnap = await window.dbRefs.get(window.dbRefs.ref(window.db, `users/${userKey}`));
+      if (!userSnap.exists()) return showAppModal("Lỗi", "Không tìm thấy thông tin user!");
+      const userData = userSnap.val();
+
+      const autoOTP = Math.floor(100000 + Math.random() * 900000).toString();
+      const customOTP = prompt(`Mã OTP 6 số cho [${userKey}]:`, autoOTP);
+      if (!customOTP) return;
+
+      await window.dbRefs.update(window.dbRefs.ref(window.db, `reset_requests/${userKey}`), { 
+        otp: customOTP, 
+        status: "đang chờ user dùng",
+        username: userData.username,
+        email: userData.email || ""
+      });
+
+      if (userData.email) {
+        await sendOTPEmailViaEmailJS(userData.username, userData.email, customOTP);
+        showAppModal("Thành công", `Đã duyệt mã OTP: [ ${customOTP} ] và tự động gửi tới email: ${userData.email}`);
+      } else {
+        showAppModal("Thành công", `Đã duyệt mã OTP: [ ${customOTP} ]. (Tài khoản chưa khai báo Email)`);
+      }
+
+      loadAdminResetRequests();
+    }
+
+    async function deleteResetRequest(userKey) {
+      await window.dbRefs.remove(window.dbRefs.ref(window.db, `reset_requests/${userKey}`));
+      loadAdminResetRequests();
+    }
+
+    function handleAdminUploadFile() {
+      const idInput = document.getElementById('admin-file-id').value.trim();
+      const customSongTitle = document.getElementById('admin-file-song-title').value.trim();
+      const fileInput = document.getElementById('admin-file-input');
+      const coverInput = document.getElementById('admin-file-cover-input');
+      const file = fileInput.files[0];
+      const coverFile = coverInput ? coverInput.files[0] : null;
+
+      if (!idInput) return showAppModal("Lỗi", "Vui lòng nhập ID Tệp!");
+      if (!file) return showAppModal("Lỗi", "Vui lòng chọn Tệp!");
+      if (file.size > 200 * 1024 * 1024) return showAppModal("Lỗi", "Tệp vượt quá 200MB!");
+
+      const songTitleToUse = customSongTitle || file.name;
+
+      const processAdminFile = (coverBase64 = "") => {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+          const base64 = e.target.result;
+          try {
+            await window.dbRefs.set(window.dbRefs.ref(window.db, `system_files/${idInput}`), {
+              id: idInput,
+              name: songTitleToUse,
+              size: file.size,
+              type: file.type,
+              content: base64,
+              uploadedAt: Date.now()
+            });
+
+            if (file.type.startsWith('audio/') || file.name.endsWith('.mp3') || file.name.endsWith('.m4a')) {
+              openApproveSongModal(idInput, songTitleToUse, currentUser.username);
+              if (coverBase64) {
+                // Đăng ký tạm ảnh bìa vào request để duyệt sử dụng
+                await window.dbRefs.update(window.dbRefs.ref(window.db, `song_requests/${idInput}`), { coverUrl: coverBase64 });
+              }
+            } else {
+              showAppModal("Thành công", `Đã tải tệp [${idInput}] lên Kho File!`);
+            }
+
+            document.getElementById('admin-file-id').value = '';
+            const titleBox = document.getElementById('admin-file-song-title');
+            if (titleBox) titleBox.value = '';
+            fileInput.value = '';
+            if (coverInput) coverInput.value = '';
+            loadAdminFilesList();
+          } catch (err) {
+            showAppModal("Lỗi", "Lỗi tải tệp lên Firebase!");
+          }
+        };
+        reader.readAsDataURL(file);
+      };
+
+      if (coverFile) {
+        const coverReader = new FileReader();
+        coverReader.onload = (e) => processAdminFile(e.target.result);
+        coverReader.readAsDataURL(coverFile);
+      } else {
+        processAdminFile("");
+      }
+    }
+
+    async function acceptFriend(fromUser) {
+      await window.dbRefs.set(window.dbRefs.ref(window.db, `friends/${currentUser.username.toLowerCase()}/${fromUser.toLowerCase()}`), true);
+      await window.dbRefs.set(window.dbRefs.ref(window.db, `friends/${fromUser.toLowerCase()}/${currentUser.username.toLowerCase()}`), true);
+      await window.dbRefs.remove(window.dbRefs.ref(window.db, `friend_requests/${currentUser.username.toLowerCase()}/${fromUser.toLowerCase()}`));
+      loadFriendsAndRequests();
+    }
+
+    async function declineFriend(fromUser) {
+      await window.dbRefs.remove(window.dbRefs.ref(window.db, `friend_requests/${currentUser.username.toLowerCase()}/${fromUser.toLowerCase()}`));
+      loadFriendsAndRequests();
+    }
+
+    function openPrivateChat(friendName) {
+      activePrivateFriend = friendName;
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('friends-screen').classList.add('hidden');
+      document.getElementById('private-chat-screen').classList.remove('hidden');
+      document.getElementById('private-chat-target').innerText = friendName;
+
+      const chatId = [currentUser.username.toLowerCase(), friendName.toLowerCase()].sort().join('_');
+      const pChatRef = window.dbRefs.ref(window.db, `private_chats/${chatId}`);
+
+      window.dbRefs.onValue(pChatRef, (snap) => {
+        const box = document.getElementById('private-chat-box');
+        if (!box) return;
+        box.innerHTML = '';
+        if (snap.exists()) {
+          const data = snap.val();
+          Object.keys(data).forEach(k => {
+            const msg = data[k];
+            const isMe = msg.sender.toLowerCase() === currentUser.username.toLowerCase();
+            box.innerHTML += `
+              <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-1.5 animate-fade-in">
+                <div class="px-3 py-1.5 rounded-xl text-[11px] leading-relaxed shadow ${isMe ? 'bg-purple-600 text-white rounded-tr-none' : 'bg-gray-800 text-gray-100 rounded-tl-none'}">
+                  ${parseTagsInText(msg.text)}
+                </div>
+              </div>
+            `;
+          });
+          box.scrollTop = box.scrollHeight;
+        }
+      });
+    }
+
+    async function handleSendPrivateMessage(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById('private-chat-input');
+      const text = input.value.trim();
+      if (!text || !activePrivateFriend) return;
+      input.value = '';
+
+      const chatId = [currentUser.username.toLowerCase(), activePrivateFriend.toLowerCase()].sort().join('_');
+      const newRef = window.dbRefs.push(window.dbRefs.ref(window.db, `private_chats/${chatId}`));
+      await window.dbRefs.set(newRef, {
+        sender: currentUser.username,
+        text: text,
+        timestamp: Date.now()
+      });
+    }
+
+    function openBossScreen() {
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('boss-screen').classList.remove('hidden');
+      checkFactionSelection();
+      if (currentUser && currentUser.role === ROLE_ADMIN) {
+        document.getElementById('boss-admin-setup-btn').classList.remove('hidden');
+      }
+      initBossGameData();
+    }
+
+    function checkFactionSelection() {
+      if (!currentUser) return;
+      window.dbRefs.get(window.dbRefs.ref(window.db, `users/${currentUser.username.toLowerCase()}/faction`)).then(snap => {
+        if (!snap.exists() || !snap.val()) {
+          document.getElementById('faction-modal').classList.remove('hidden');
+        } else {
+          currentUser.faction = snap.val();
+          updateFactionTagUI();
+        }
+      });
+    }
+
+    async function selectFaction(faction) {
+      if (!currentUser) return;
+      await window.dbRefs.update(window.dbRefs.ref(window.db, `users/${currentUser.username.toLowerCase()}`), { faction: faction });
+      currentUser.faction = faction;
+      document.getElementById('faction-modal').classList.add('hidden');
+      updateFactionTagUI();
+      showAppModal("Thành công", `Bạn đã gia nhập ${faction === 'red' ? 'Phe Đỏ' : 'Phe Xanh'}!`);
+    }
+
+    function updateFactionTagUI() {
+      const tag = document.getElementById('boss-faction-tag');
+      if (!currentUser || !currentUser.faction || !tag) return;
+      if (currentUser.faction === 'red') {
+        tag.innerText = "Phe: 🔴 Phe Đỏ";
+        tag.className = "px-2 py-0.5 text-[9px] font-bold rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40";
+      } else {
+        tag.innerText = "Phe: 🔵 Phe Xanh";
+        tag.className = "px-2 py-0.5 text-[9px] font-bold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/40";
+      }
+    }
+
+    function showBossSetupModal() { document.getElementById('boss-setup-modal').classList.remove('hidden'); }
+    function closeBossSetupModal() { document.getElementById('boss-setup-modal').classList.add('hidden'); }
+
+    async function saveBossConfig() {
+      const name = document.getElementById('setup-boss-name').value.trim() || "Hacker";
+      const hp = parseInt(document.getElementById('setup-boss-hp').value) || 1000000;
+
+      await window.dbRefs.set(window.dbRefs.ref(window.db, 'boss_game'), {
+        name: name,
+        maxHp: hp,
+        currentHp: hp,
+        scoreRed: 0,
+        scoreBlue: 0,
+        createdAt: Date.now()
+      });
+
+      closeBossSetupModal();
+      showAppModal("Thành công", "Đã khởi tạo Boss mới!");
+    }
+
+    function listenBossGameData() {
+      window.dbRefs.onValue(window.dbRefs.ref(window.db, 'boss_game'), (snap) => {
+        if (!snap.exists()) {
+          if (currentUser && currentUser.role === ROLE_ADMIN) {
+            window.dbRefs.set(window.dbRefs.ref(window.db, 'boss_game'), {
+              name: "Hacker Boss",
+              maxHp: 1000000,
+              currentHp: 1000000,
+              scoreRed: 0,
+              scoreBlue: 0,
+              createdAt: Date.now()
+            });
+          }
+          return;
+        }
+
+        currentBossData = snap.val();
+        document.getElementById('boss-name').innerText = currentBossData.name || "BOSS HACKER";
+        
+        const maxHp = currentBossData.maxHp || 1000000;
+        const curHp = Math.max(0, currentBossData.currentHp || 0);
+        const percent = Math.max(0, Math.min(100, (curHp / maxHp) * 100));
+
+        document.getElementById('boss-hp-bar').style.width = percent + '%';
+        document.getElementById('boss-hp-text').innerText = `${curHp.toLocaleString()} / ${maxHp.toLocaleString()} HP`;
+
+        document.getElementById('score-red').innerText = `${(currentBossData.scoreRed || 0).toLocaleString()} HP`;
+        document.getElementById('score-blue').innerText = `${(currentBossData.scoreBlue || 0).toLocaleString()} HP`;
+      });
+    }
+
+    function initBossGameData() {
+      listenBossGameData();
+    }
+
+    function startBossFight() {
+      if (bossGameActive) return;
+      if (!currentUser || !currentUser.faction) return checkFactionSelection();
+
+      bossGameActive = true;
+      roundClickCount = 0;
+      document.getElementById('round-clicks').innerText = "0";
+      const btn = document.getElementById('start-game-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+      }
+
+      let timeLeft = 60;
+      document.getElementById('game-timer').innerText = `${timeLeft}s`;
+
+      bossTimerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('game-timer').innerText = `${timeLeft}s`;
+
+        if (timeLeft <= 0) {
+          clearInterval(bossTimerInterval);
+          finishBossFight();
+        }
+      }, 1000);
+    }
+
+    function registerBossClick() {
+      if (!bossGameActive) return;
+      roundClickCount++;
+      document.getElementById('round-clicks').innerText = roundClickCount;
+    }
+
+    async function finishBossFight() {
+      bossGameActive = false;
+      const btn = document.getElementById('start-game-btn');
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+      }
+
+      if (roundClickCount > 0 && currentBossData) {
+        const dmg = roundClickCount;
+        const newHp = Math.max(0, (currentBossData.currentHp || 1000000) - dmg);
+
+        const updates = { currentHp: newHp };
+        if (currentUser.faction === 'red') updates.scoreRed = (currentBossData.scoreRed || 0) + dmg;
+        else updates.scoreBlue = (currentBossData.scoreBlue || 0) + dmg;
+
+        await window.dbRefs.update(window.dbRefs.ref(window.db, 'boss_game'), updates);
+        showAppModal("Hết Giờ!", `Bạn đã gây ${dmg} sát thương cho Boss!`);
+      } else {
+        showAppModal("Hết Giờ!", "Bạn chưa đánh trúng phát nào.");
+      }
+    }
+  </script>

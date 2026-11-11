@@ -8,7 +8,7 @@
 const express = require('express');
 const admin = require('firebase-admin');
 const cron = require('node-cron');
-const axios = require('axios'); // Dùng để gọi API gửi email qua EmailJS từ server nếu cần
+const axios = require('axios');
 
 const app = express();
 app.use(express.json());
@@ -20,20 +20,19 @@ admin.initializeApp({
 
 const db = admin.database();
 
-// Cấu hình thông tin EmailJS của bạn
+// Cấu hình thông tin EmailJS
 const EMAILJS_CONFIG = {
   serviceId: "service_az8s2vo",
   templateId: "template_cb4xnwh",
-  // Lưu ý: Để gửi từ server Node.js qua EmailJS REST API, bạn cần Public Key & Private Key (tuỳ chọn)
-  // Hoặc bạn có thể gọi trực tiếp từ phía Client (Frontend) như đã hướng dẫn trước đó.
+  publicKey: "YOUR_PUBLIC_KEY" // Thay bằng Public Key của bạn nếu dùng REST API
 };
 
-// Health check endpoint for Render
+// 1. Health check endpoint cho Render
 app.get('/', (req, res) => {
   res.status(200).send('Web Chat Automation Server is running successfully with EmailJS config!');
 });
 
-// API endpoint hỗ trợ gửi OTP trực tiếp từ Server qua EmailJS REST API
+// 2. API Endpoint: Gửi OTP trực tiếp qua EmailJS REST API từ Server
 app.post('/api/send-otp', async (req, res) => {
   try {
     const { username, email, otpCode } = req.body;
@@ -42,21 +41,20 @@ app.post('/api/send-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Thiếu thông tin username, email hoặc otpCode!' });
     }
 
-    // Payload chuẩn theo mẫu Template của EmailJS (bao gồm các biến username và message)
+    // Payload chuẩn gửi đến EmailJS
     const emailData = {
       service_id: EMAILJS_CONFIG.serviceId,
       template_id: EMAILJS_CONFIG.templateId,
-      user_id: "YOUR_PUBLIC_KEY", // Thay bằng Public Key của bạn trên EmailJS
+      user_id: EMAILJS_CONFIG.publicKey,
       template_params: {
-        to_name: username,
+        to_email: email,
         username: username,
-        message: `Mã OTP xác nhận khôi phục tài khoản của bạn là: ${otpCode}. Có hiệu lực trong 15 ngày.`,
+        to_name: username,
         otp_code: otpCode,
-        to_email: email
+        message: `Xin chào ${username} đây là mã otp của bạn:${otpCode} vui lòng không chia sẻ với bất kỳ ai và không gửi hoặc trả lời email này`
       }
     };
 
-    // Gọi API của EmailJS để gửi email tự động từ server
     const response = await axios.post('https://api.emailjs.com/api/v1.0/email/send', emailData, {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -68,7 +66,7 @@ app.post('/api/send-otp', async (req, res) => {
   }
 });
 
-// CRON JOB 1: Reset Boss every Monday at 00:00 (0 0 * * 1)
+// 3. CRON JOB 1: Reset Boss hàng tuần vào Thứ 2 lúc 00:00 (0 0 * * 1)
 cron.schedule('0 0 * * 1', async () => {
   try {
     console.log('[CRON] Executing weekly Boss reset...');
@@ -90,13 +88,11 @@ cron.schedule('0 0 * * 1', async () => {
   }
 });
 
-// CRON JOB 2: Auto unmute users and cleanup expired OTP requests every hour
-cron.schedule('0 * * * *', async () => {
+// 4. CRON JOB 2: Tự động mở khóa mõm User & dọn dẹp/khóa OTP quá hạn 5 phút (Chạy mỗi phút)
+cron.schedule('* * * * *', async () => {
   const now = Date.now();
   try {
-    console.log('[CRON] Checking user mutes and expired OTPs...');
-
-    // 1. Unmute expired mutes
+    // A. Tự động gỡ "Khóa Mõm" khi hết hạn
     const usersSnap = await db.ref('users').get();
     if (usersSnap.exists()) {
       const users = usersSnap.val();
@@ -109,20 +105,20 @@ cron.schedule('0 * * * *', async () => {
       }
     }
 
-    // 2. Delete OTP requests older than 15 days or expired
+    // B. Kiểm tra mã OTP quá hạn 5 phút: Chuyển trạng thái thành "Đã khóa (Quá 5 phút)"
     const resetSnap = await db.ref('reset_requests').get();
     if (resetSnap.exists()) {
       const requests = resetSnap.val();
       for (const reqKey of Object.keys(requests)) {
         const r = requests[reqKey];
-        if (r.expiresAt && now > r.expiresAt) {
-          await db.ref(`reset_requests/${reqKey}`).remove();
-          console.log(`[CRON] Removed expired OTP request for: ${r.username}`);
+        if (r.expiresAt && now > r.expiresAt && r.status === 'Đang chờ xác minh') {
+          await db.ref(`reset_requests/${reqKey}`).update({ status: 'Đã khóa (Quá 5 phút)' });
+          console.log(`[CRON] Locked expired OTP request for: ${r.username}`);
         }
       }
     }
   } catch (err) {
-    console.error('[CRON ERROR] Failed background maintenance:', err);
+    console.error('[CRON ERROR] Background maintenance failed:', err);
   }
 });
 
